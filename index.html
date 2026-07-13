@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Peter Alfonso — Sobre mí</title>
+<meta name="description" content="Actuario y financiero. Convierto la incertidumbre en criterio: seguros, salud, riesgo e inteligencia artificial.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0a0a0f;
+    --bg-alt: #111117;
+    --card: #15151d;
+    --border: #2a2a35;
+    --text: #f5f5f7;
+    --text-dim: #a8a8b3;
+    --orange: #ff5a1f;
+    --orange-light: #ff8a4c;
+    --purple: #7c5cff;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    line-height:1.5;
+    overflow-x:hidden;
+  }
+  a{color:inherit;text-decoration:none;}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 24px;}
+
+  /* background glow */
+  body::before{
+    content:"";
+    position:fixed;
+    top:-20%;
+    left:50%;
+    transform:translateX(-50%);
+    width:900px;
+    height:900px;
+    background:radial-gradient(circle, rgba(255,90,31,0.15) 0%, rgba(124,92,255,0.08) 40%, transparent 70%);
+    pointer-events:none;
+    z-index:0;
+  }
+
+  /* NAVBAR */
+  header{
+    position:sticky;
+    top:0;
+    z-index:50;
+    background:rgba(10,10,15,0.85);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--border);
+  }
+  nav{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:18px 24px;
+    max-width:1180px;
+    margin:0 auto;
+  }
+  .logo{
+    font-weight:800;
+    font-size:1.15rem;
+    letter-spacing:-0.02em;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .logo .dot{color:var(--orange);}
+  .nav-links{
+    display:flex;
+    gap:32px;
+    font-size:0.92rem;
+    font-weight:500;
+    color:var(--text-dim);
+  }
+  .nav-links a:hover{color:var(--text);}
+  .nav-cta{
+    display:flex;
+    align-items:center;
+    gap:14px;
+  }
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:10px 20px;
+    border-radius:999px;
+    font-weight:600;
+    font-size:0.9rem;
+    border:1px solid transparent;
+    cursor:pointer;
+    transition:transform .15s ease, opacity .15s ease;
+  }
+  .btn:hover{transform:translateY(-1px);}
+  .btn-primary{
+    background:linear-gradient(135deg, var(--orange), var(--orange-light));
+    color:#fff;
+    box-shadow:0 4px 20px rgba(255,90,31,0.35);
+  }
+  .btn-ghost{
+    background:rgba(255,255,255,0.06);
+    border-color:var(--border);
+    color:var(--text);
+  }
+  .nav-toggle{display:none;}
+
+  /* HERO */
+  .hero{
+    position:relative;
+    z-index:1;
+    text-align:center;
+    padding:100px 24px 70px;
+  }
+  .badge{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:8px 18px;
+    border-radius:999px;
+    border:1px solid rgba(255,90,31,0.4);
+    background:rgba(255,90,31,0.08);
+    color:var(--orange-light);
+    font-size:0.85rem;
+    font-weight:600;
+    margin-bottom:36px;
+  }
+  h1{
+    font-size:clamp(2.2rem, 5.5vw, 4.2rem);
+    font-weight:900;
+    letter-spacing:-0.03em;
+    line-height:1.08;
+    max-width:920px;
+    margin:0 auto 28px;
+  }
+  h1 .accent{
+    color:var(--orange);
+    position:relative;
+    display:inline-block;
+  }
+  .hero-sub{
+    max-width:680px;
+    margin:0 auto 40px;
+    font-size:1.1rem;
+    color:var(--text-dim);
+  }
+  .hero-actions{
+    display:flex;
+    justify-content:center;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+
+  /* SECTION shared */
+  section{
+    position:relative;
+    z-index:1;
+    padding:90px 0;
+    border-top:1px solid var(--border);
+  }
+  .section-head{
+    max-width:680px;
+    margin:0 auto 50px;
+    text-align:center;
+  }
+  .eyebrow{
+    display:inline-block;
+    color:var(--orange);
+    font-weight:700;
+    font-size:0.82rem;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    margin-bottom:14px;
+  }
+  h2{
+    font-size:clamp(1.6rem, 3.2vw, 2.4rem);
+    font-weight:800;
+    letter-spacing:-0.02em;
+    margin-bottom:14px;
+  }
+  .section-head p{
+    color:var(--text-dim);
+    font-size:1.02rem;
+  }
+
+  /* QUIEN SOY */
+  .who-grid{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:22px;
+    max-width:780px;
+    margin:0 auto;
+  }
+  .who-grid p{
+    font-size:1.08rem;
+    color:#d6d6dd;
+  }
+  .lead{
+    font-size:1.3rem !important;
+    font-weight:600;
+    color:var(--text) !important;
+  }
+  .territory{
+    margin-top:10px;
+    padding:22px 26px;
+    border-left:3px solid var(--orange);
+    background:var(--card);
+    border-radius:0 12px 12px 0;
+    font-weight:700;
+    font-size:1.15rem;
+  }
+
+  /* COMO COMUNICO */
+  .style-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+    gap:20px;
+    max-width:960px;
+    margin:0 auto 40px;
+  }
+  .style-card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:26px;
+  }
+  .style-card .num{
+    color:var(--orange);
+    font-weight:800;
+    font-size:0.85rem;
+    margin-bottom:10px;
+    display:block;
+  }
+  .style-card p{color:var(--text-dim);font-size:0.98rem;}
+  .resources{
+    max-width:780px;
+    margin:0 auto;
+    display:flex;
+    flex-wrap:wrap;
+    gap:12px;
+    justify-content:center;
+  }
+  .chip{
+    background:rgba(255,255,255,0.05);
+    border:1px solid var(--border);
+    padding:9px 16px;
+    border-radius:999px;
+    font-size:0.88rem;
+    color:var(--text-dim);
+  }
+
+  /* TEMAS */
+  .topics-wrap{
+    background:var(--bg-alt);
+  }
+  .topics-cloud{
+    display:flex;
+    flex-wrap:wrap;
+    gap:12px;
+    justify-content:center;
+    max-width:840px;
+    margin:0 auto 44px;
+  }
+  .topic-pill{
+    padding:10px 20px;
+    border-radius:999px;
+    background:var(--card);
+    border:1px solid var(--border);
+    font-weight:600;
+    font-size:0.95rem;
+    transition:border-color .15s ease, color .15s ease;
+  }
+  .topic-pill:hover{border-color:var(--orange); color:var(--orange-light);}
+  .cross-note{
+    max-width:680px;
+    margin:0 auto;
+    text-align:center;
+    color:var(--text-dim);
+    font-size:1.02rem;
+  }
+  .cross-note b{color:var(--text);}
+
+  /* AUDIENCIA */
+  .audience-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));
+    gap:24px;
+    max-width:960px;
+    margin:0 auto;
+  }
+  .audience-card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:18px;
+    padding:32px;
+  }
+  .audience-card .icon{
+    width:44px;height:44px;
+    border-radius:12px;
+    background:linear-gradient(135deg, var(--orange), var(--purple));
+    display:flex;align-items:center;justify-content:center;
+    font-size:1.3rem;
+    margin-bottom:18px;
+  }
+  .audience-card h3{font-size:1.15rem;font-weight:700;margin-bottom:10px;}
+  .audience-card p{color:var(--text-dim);font-size:0.98rem;}
+
+  /* VOZ */
+  .voice-traits{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    justify-content:center;
+    margin-bottom:44px;
+  }
+  .trait{
+    padding:8px 18px;
+    border-radius:999px;
+    font-weight:700;
+    font-size:0.9rem;
+    background:rgba(255,90,31,0.1);
+    color:var(--orange-light);
+    border:1px solid rgba(255,90,31,0.3);
+  }
+  .voice-desc{
+    max-width:700px;
+    margin:0 auto;
+    text-align:center;
+    font-size:1.1rem;
+    color:#d6d6dd;
+  }
+
+  /* QUOTE */
+  .quote-section{
+    background:linear-gradient(180deg, var(--bg-alt), var(--bg));
+  }
+  blockquote{
+    max-width:760px;
+    margin:0 auto;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:22px;
+    padding:48px 44px;
+    position:relative;
+  }
+  blockquote::before{
+    content:"“";
+    position:absolute;
+    top:12px;
+    left:28px;
+    font-size:5rem;
+    color:rgba(255,90,31,0.25);
+    font-family:Georgia, serif;
+    line-height:1;
+  }
+  blockquote p{
+    font-size:1.15rem;
+    line-height:1.75;
+    color:var(--text);
+    margin-bottom:14px;
+    position:relative;
+    z-index:1;
+  }
+  blockquote p.strong{
+    font-weight:800;
+    color:var(--orange-light);
+  }
+  blockquote footer{
+    margin-top:24px;
+    color:var(--text-dim);
+    font-size:0.9rem;
+    font-weight:600;
+  }
+
+  /* NO QUIERO */
+  .no-list{
+    max-width:680px;
+    margin:0 auto;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+  .no-item{
+    display:flex;
+    align-items:flex-start;
+    gap:14px;
+    padding:16px 20px;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:12px;
+    color:var(--text-dim);
+    font-size:0.98rem;
+  }
+  .no-item .x{
+    color:#ff4d6d;
+    font-weight:800;
+    flex-shrink:0;
+  }
+
+  /* FOOTER / CONTACT */
+  footer.site-footer{
+    text-align:center;
+    padding:80px 24px 60px;
+    position:relative;
+    z-index:1;
+  }
+  footer.site-footer h2{margin-bottom:16px;}
+  footer.site-footer p{color:var(--text-dim);margin-bottom:32px;}
+  .footer-bottom{
+    margin-top:60px;
+    padding-top:24px;
+    border-top:1px solid var(--border);
+    color:var(--text-dim);
+    font-size:0.85rem;
+  }
+
+  @media (max-width:820px){
+    .nav-links{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <nav>
+    <div class="logo">Peter Alfonso<span class="dot">.</span></div>
+    <div class="nav-links">
+      <a href="#quien-soy">Quién soy</a>
+      <a href="#comunicar">Cómo comunico</a>
+      <a href="#temas">Temas</a>
+      <a href="#audiencia">Audiencia</a>
+      <a href="#voz">Mi voz</a>
+    </div>
+    <div class="nav-cta">
+      <a class="btn btn-primary" href="https://linkedin.com/in/peteralfonso" target="_blank" rel="noopener">Sígueme en LinkedIn</a>
+    </div>
+  </nav>
+</header>
+
+<section class="hero" style="border-top:none;">
+  <span class="badge">📊 Actuaría · Riesgo · Inteligencia Artificial</span>
+  <h1>Mi territorio es la <span class="accent">incertidumbre</span>.<br>Mi trabajo es convertirla en criterio.</h1>
+  <p class="hero-sub">Soy actuario y financiero. Trabajo en la intersección entre seguros, salud, riesgo, inteligencia artificial y estrategia de negocio — ayudando a tomar mejores decisiones cuando el futuro no está claro.</p>
+  <div class="hero-actions">
+    <a class="btn btn-primary" href="#quien-soy">Conóceme</a>
+    <a class="btn btn-ghost" href="#voz-ejemplo">Leer un ejemplo de mi voz</a>
+  </div>
+</section>
+
+<section id="quien-soy">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Quién soy</span>
+      <h2>No calculo el futuro. Lo interpreto.</h2>
+    </div>
+    <div class="who-grid">
+      <p class="lead">Mi oficio consiste en ayudar a tomar mejores decisiones bajo incertidumbre. Eso significa leer datos, interpretar señales, construir modelos, entender riesgos y traducir escenarios complejos en decisiones concretas para líderes y organizaciones.</p>
+      <p>No veo la actuaría como una disciplina fría, escondida detrás de tablas, modelos y hojas de cálculo. La veo como una forma de pensar el futuro: una manera de entender el miedo, la probabilidad, la salud, el envejecimiento, las pensiones, los seguros y las decisiones difíciles que toman las empresas y las personas.</p>
+      <div class="territory">Mi territorio es la incertidumbre. Mi trabajo es convertirla en criterio.</div>
+    </div>
+  </div>
+</section>
+
+<section id="comunicar">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Cómo quiero comunicar</span>
+      <h2>Rigor técnico, con voz humana</h2>
+      <p>Nada de manuales corporativos ni papers académicos. Prefiero una comunicación con criterio, con carácter y con sensibilidad literaria.</p>
+    </div>
+    <div class="style-grid">
+      <div class="style-card">
+        <span class="num">01</span>
+        <p>Empiezan con una idea provocadora.</p>
+      </div>
+      <div class="style-card">
+        <span class="num">02</span>
+        <p>Desarrollan una explicación sencilla.</p>
+      </div>
+      <div class="style-card">
+        <span class="num">03</span>
+        <p>Terminan con una reflexión útil, un giro inesperado o un poco de humor.</p>
+      </div>
+    </div>
+    <div class="resources">
+      <span class="chip">Frases cortas</span>
+      <span class="chip">Párrafos cortos</span>
+      <span class="chip">Contraste ("no es X. Es peor.")</span>
+      <span class="chip">Un giro que obliga a releer</span>
+      <span class="chip">Cierre que deja pensando, no un resumen</span>
+    </div>
+  </div>
+</section>
+
+<section id="temas" class="topics-wrap">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Temas que trabajo</span>
+      <h2>Donde lo técnico se cruza con la vida real</h2>
+    </div>
+    <div class="topics-cloud">
+      <span class="topic-pill">Actuaría</span>
+      <span class="topic-pill">Seguros</span>
+      <span class="topic-pill">Inteligencia artificial</span>
+      <span class="topic-pill">Sistema de salud</span>
+      <span class="topic-pill">Pensiones</span>
+      <span class="topic-pill">Longevidad</span>
+      <span class="topic-pill">Bienestar</span>
+      <span class="topic-pill">Deporte</span>
+      <span class="topic-pill">Fútbol</span>
+      <span class="topic-pill">Crossfit</span>
+      <span class="topic-pill">Lectura</span>
+      <span class="topic-pill">Decisiones bajo incertidumbre</span>
+    </div>
+    <p class="cross-note">Los conceptos técnicos solo importan cuando ayudan a entender mejor el mundo. Cruzar dos temas aparentemente lejanos — por ejemplo, <b>crossfit y gestión de riesgo</b> — suele dar los mejores giros.</p>
+  </div>
+</section>
+
+<section id="audiencia">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Mi audiencia</span>
+      <h2>Para quien decide, y para quien quiere entender</h2>
+    </div>
+    <div class="audience-grid">
+      <div class="audience-card">
+        <div class="icon">🏛️</div>
+        <h3>Líderes del sector</h3>
+        <p>Ejecutivos, tomadores de decisión, equipos actuariales, y áreas de riesgo, innovación y estrategia en seguros, finanzas y salud.</p>
+      </div>
+      <div class="audience-card">
+        <div class="icon">💡</div>
+        <h3>Curiosos sin formación técnica</h3>
+        <p>Quiero que cualquiera pueda leerme y entender por qué un seguro, un modelo, una probabilidad o una tabla de mortalidad dicen mucho más sobre la vida de lo que parece.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="voz">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">La voz que construyo en LinkedIn</span>
+      <h2>Precisa, escéptica, creativa, cercana y algo disruptiva</h2>
+    </div>
+    <div class="voice-traits">
+      <span class="trait">Precisa</span>
+      <span class="trait">Escéptica</span>
+      <span class="trait">Creativa</span>
+      <span class="trait">Cercana</span>
+      <span class="trait">Algo disruptiva</span>
+    </div>
+    <p class="voice-desc">No me interesa repetir lugares comunes. Me interesa hacer mejores preguntas. Soy un actuario que no solo calcula, sino que interpreta; que no solo modela, sino que comunica; que no solo habla de riesgo, sino que ayuda a decidir mejor.</p>
+  </div>
+</section>
+
+<section id="voz-ejemplo" class="quote-section">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Ejemplo de mi voz</span>
+      <h2>Así suena cuando escribo</h2>
+    </div>
+    <blockquote>
+      <p>El problema de muchas aseguradoras no es que no tengan datos.</p>
+      <p class="strong">Es peor.</p>
+      <p>Tienen demasiados datos y muy pocas preguntas inteligentes.</p>
+      <p>Un modelo puede calcular probabilidades. Una tabla puede mostrar tendencias. Un dashboard puede pintar alertas en rojo, amarillo y verde.</p>
+      <p>Pero ninguna herramienta reemplaza el criterio de negocio.</p>
+      <p>La actuaría del futuro no será la que produzca más cifras. Será la que sepa distinguir entre ruido y señal.</p>
+      <p>Porque en seguros, como en la vida, el riesgo más peligroso no siempre es el más visible.</p>
+      <p class="strong">A veces el verdadero riesgo está en creer que ya entendimos todo.</p>
+      <footer>— Peter Alfonso</footer>
+    </blockquote>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Lo que no vas a encontrar aquí</span>
+      <h2>Sin lugares comunes, sin moralejas</h2>
+    </div>
+    <div class="no-list">
+      <div class="no-item"><span class="x">✕</span> Tono de manual corporativo o paper académico.</div>
+      <div class="no-item"><span class="x">✕</span> Lugares comunes o frases de LinkedIn genéricas ("la IA está revolucionando...").</div>
+      <div class="no-item"><span class="x">✕</span> Cierres moralizantes o resúmenes obvios.</div>
+      <div class="no-item"><span class="x">✕</span> Jerga técnica sin traducción a algo que importe en la vida real.</div>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <h2>Hablemos de riesgo, criterio y decisiones.</h2>
+  <p>Conecta conmigo en LinkedIn y sigamos la conversación.</p>
+  <a class="btn btn-primary" href="https://linkedin.com/in/peteralfonso" target="_blank" rel="noopener">Sígueme en LinkedIn</a>
+  <div class="footer-bottom">
+    © 2026 Peter Alfonso. Actuario, financiero, y algo disruptivo.
+  </div>
+</footer>
+
+</body>
+</html>
