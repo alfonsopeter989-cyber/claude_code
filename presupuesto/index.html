@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Presupuesto Familiar · Panel</title>
+<style>
+:root{
+  --bg0:#050b18;--bg1:#081428;
+  --panel:rgba(11,24,48,.66);--panel2:rgba(9,20,42,.5);
+  --cyan:#2de1fc;--cyan2:#22d3ee;--blue:#3b82f6;--gold:#f5c518;--mag:#ff477e;
+  --ink:#dbe9ff;--muted:#6f89b3;--line:rgba(45,225,252,.24);--grid:rgba(45,225,252,.08);
+  --good:#3ce6c4;--warn:#f5c518;--bad:#ff477e;
+  --glow:0 0 22px rgba(45,225,252,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;color:var(--ink);line-height:1.35;
+  background:
+    radial-gradient(1100px 760px at 16% -6%,#12305c 0%,transparent 60%),
+    radial-gradient(1000px 720px at 106% 108%,#0b2547 0%,transparent 60%),
+    linear-gradient(160deg,#050b18,#081528);
+  min-height:100vh;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:46px 46px;mask:radial-gradient(120% 100% at 50% 0%,#000 55%,transparent 100%)}
+.num,h1,h2,h3,.gval,.stat .v,.tbl td.n,.subrow .amt,.metarow .amt,.budrow .amt{font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;letter-spacing:0}
+.wrap{max-width:1280px;margin:0 auto;padding:22px 20px 80px;position:relative;z-index:1}
+
+header{display:flex;flex-wrap:wrap;align-items:center;gap:16px;justify-content:space-between;margin-bottom:20px}
+.brand{display:flex;align-items:center;gap:14px}
+.logo{width:48px;height:48px;position:relative;display:grid;place-items:center}
+.logo svg{filter:drop-shadow(0 0 8px var(--cyan))}
+.brand h1{font-size:19px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  background:linear-gradient(90deg,#fff,var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}
+.brand p{font-size:12.5px;color:var(--muted);font-weight:600;letter-spacing:.14em;text-transform:uppercase}
+.controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pill{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:9px 14px;
+  font-size:13px;font-weight:600;letter-spacing:.06em;cursor:pointer;color:var(--cyan);
+  text-transform:uppercase;transition:.15s;box-shadow:var(--glow)}
+.pill:hover{background:rgba(45,225,252,.12);border-color:var(--cyan)}
+select.pill{appearance:none;padding-right:32px;color:var(--ink);
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 12 12\"><path d=\"M2 4l4 4 4-4\" stroke=\"%232de1fc\" stroke-width=\"1.6\" fill=\"none\"/></svg>');
+  background-repeat:no-repeat;background-position:right 12px center}
+.pill.primary{background:linear-gradient(100deg,rgba(45,225,252,.2),rgba(59,130,246,.25));color:#eafcff;border-color:var(--cyan)}
+
+.banner{position:relative;border:1px solid var(--line);border-radius:4px;background:var(--panel);
+  padding:11px 16px;font-size:13px;color:#a9c4ea;margin-bottom:18px;display:flex;gap:10px;align-items:center;
+  font-weight:500;letter-spacing:.02em;box-shadow:var(--glow)}
+.banner b{color:var(--cyan);font-weight:700}
+.banner.hide{display:none}
+
+.eyebrow{font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--cyan);
+  display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.eyebrow::before{content:"";width:16px;height:2px;background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
+
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}
+.panel{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:4px;
+  padding:16px 17px;box-shadow:var(--glow),inset 0 0 60px rgba(45,225,252,.03);min-width:0}
+.panel::before,.panel::after{content:"";position:absolute;width:14px;height:14px;pointer-events:none}
+.panel::before{top:-1px;left:-1px;border-top:2px solid var(--cyan);border-left:2px solid var(--cyan)}
+.panel::after{bottom:-1px;right:-1px;border-bottom:2px solid var(--cyan);border-right:2px solid var(--cyan)}
+.panel h3{font-size:13.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#eaf6ff}
+.panel .hint{font-size:11.5px;color:var(--muted);margin:2px 0 13px;font-weight:500;letter-spacing:.03em}
+.span12{grid-column:span 12}.span8{grid-column:span 8}.span7{grid-column:span 7}
+.span6{grid-column:span 6}.span5{grid-column:span 5}.span4{grid-column:span 4}.span3{grid-column:span 3}
+
+/* gauges */
+.gwrap{position:relative;height:132px}
+.gcenter{position:absolute;inset:0;display:grid;place-items:center;text-align:center;pointer-events:none}
+.gval{font-size:26px;font-weight:800;letter-spacing:.01em}
+.glab{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--cyan);margin-top:11px;text-align:center}
+.gsub{font-size:11px;color:var(--muted);text-align:center;font-weight:500;letter-spacing:.04em}
+
+/* stat strip */
+.stats{display:grid;grid-template-columns:repeat(4,1fr)}
+.stat{padding:4px 16px;border-left:1px solid var(--line)}
+.stat:first-child{border-left:none;padding-left:2px}
+.stat .l{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:6px}
+.stat .v{font-family:'Orbitron';font-size:20px;font-weight:700;margin-top:4px;letter-spacing:.01em}
+.dot{width:8px;height:8px;border-radius:50%;box-shadow:0 0 8px currentColor}
+
+.chartbox{position:relative;width:100%}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);
+  font-weight:700;padding:7px 8px;border-bottom:1px solid var(--line)}
+.tbl td{padding:8px;border-bottom:1px solid rgba(45,225,252,.1);font-weight:500;letter-spacing:.02em}
+.tbl td.n{text-align:right;font-variant-numeric:tabular-nums;font-weight:700;font-family:'Orbitron';font-size:12px}
+.tbl tr:last-child td{border-bottom:none}
+.tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:2px;letter-spacing:.06em;text-transform:uppercase}
+.tag.g{background:rgba(60,230,196,.14);color:var(--good)}
+.tag.w{background:rgba(245,197,24,.16);color:var(--gold)}
+.tag.b{background:rgba(255,71,126,.16);color:var(--bad)}
+.bar-mini{height:8px;border-radius:2px;background:rgba(45,225,252,.1);overflow:hidden;margin-top:5px;position:relative}
+.bar-mini i{display:block;height:100%;border-radius:2px}
+.budrow{margin-bottom:11px}
+.budrow .top{display:flex;justify-content:space-between;font-size:13px;font-weight:600;margin-bottom:3px;letter-spacing:.02em}
+.budrow .amt{font-family:'Orbitron';font-size:11.5px}
+
+.subrow{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid rgba(45,225,252,.1)}
+.subrow:last-child{border-bottom:none}
+.subrow .ico{width:34px;height:34px;border-radius:3px;display:grid;place-items:center;color:#031018;font-weight:800;
+  font-size:15px;flex:0 0 auto;font-family:'Orbitron';box-shadow:0 0 12px rgba(0,0,0,.4)}
+.subrow .nm{font-weight:600;font-size:13.5px;letter-spacing:.02em}
+.subrow .mt{font-size:11px;color:var(--muted);font-weight:500;letter-spacing:.03em}
+.subrow .amt{margin-left:auto;text-align:right;font-weight:700;font-size:13px;font-family:'Orbitron'}
+.days{font-size:10px;font-weight:700;padding:3px 9px;border-radius:2px;white-space:nowrap;letter-spacing:.06em;text-transform:uppercase}
+
+.metarow{margin-bottom:14px}
+.metarow .top{display:flex;justify-content:space-between;font-size:13.5px;font-weight:600;margin-bottom:5px;letter-spacing:.02em}
+.metarow .amt{font-family:'Orbitron';font-size:12px}
+.empty{text-align:center;padding:34px;color:var(--muted);font-size:13px;letter-spacing:.04em}
+.footer{text-align:center;font-size:11px;color:var(--muted);margin-top:28px;line-height:1.8;
+  letter-spacing:.1em;text-transform:uppercase}
+#drop.drag .panel{border-color:var(--cyan)}
+#drop.drag::after{content:"Suelta tu .xlsx";position:fixed;inset:0;z-index:99;display:grid;place-items:center;
+  background:rgba(5,11,24,.8);color:var(--cyan);font-family:'Orbitron';font-size:24px;letter-spacing:.1em}
+@media(max-width:980px){.span8,.span7,.span6,.span5,.span4{grid-column:span 12}
+  .span3{grid-column:span 6}.stats{grid-template-columns:repeat(2,1fr);gap:12px 0}
+  .stat:nth-child(3){border-left:none;padding-left:2px}}
+@media(max-width:560px){.span3{grid-column:span 12}.stats{grid-template-columns:1fr}
+  .stat{border-left:none;padding-left:2px;border-top:1px solid var(--line);padding-top:8px}
+  .stat:first-child{border-top:none}}
+
+html,body{max-width:100%;overflow-x:hidden}
+@media(max-width:640px){
+  .wrap{padding:16px 12px 60px}
+  header{gap:10px}
+  .controls{width:100%}
+  .kpi .val{font-size:21px}
+  .stat .v{font-size:18px}
+  .gval{font-size:22px}
+}
+</style>
+</head>
+<body>
+<div class="wrap" id="drop">
+<header>
+  <div class="brand">
+    <div class="logo"><svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+      <circle cx="20" cy="20" r="17" stroke="#2de1fc" stroke-width="1.5" opacity=".4"/>
+      <circle cx="20" cy="20" r="17" stroke="#2de1fc" stroke-width="2.5" stroke-dasharray="30 80" stroke-linecap="round"/>
+      <circle cx="20" cy="20" r="10" stroke="#f5c518" stroke-width="2" stroke-dasharray="20 44" stroke-linecap="round"/>
+      <circle cx="20" cy="20" r="3" fill="#2de1fc"/></svg></div>
+    <div><h1>Presupuesto Familiar</h1><p>Jul 2026 — Jun 2027 · COP</p></div>
+  </div>
+  <div class="controls">
+    <select class="pill" id="monthSel"></select>
+    <label class="pill primary" for="file">▲ Cargar .xlsx</label>
+    <input type="file" id="file" accept=".xlsx" style="display:none">
+    <button class="pill" id="clearBtn" type="button" style="display:none">✕ Borrar</button>
+  </div>
+</header>
+<div class="banner" id="banner">
+  <span style="color:var(--cyan)">◉</span><div>Modo <b>demostración</b> con datos ficticios. Toca <b>▲ Cargar .xlsx</b> y elige tu <b>Presupuesto_Familiar_2026-2027.xlsx</b> — <b>todo se procesa en tu dispositivo, nada viaja a internet</b>. Tus cifras quedan guardadas <b>solo en este dispositivo</b> hasta que toques <b>Borrar</b>.</div>
+</div>
+<div id="dataStatus" style="display:none;font-size:12px;color:#a9c4ea;margin:-8px 0 16px;letter-spacing:.02em;font-weight:500"></div>
+<div id="app"><div style="text-align:center;padding:40px 20px;color:#6f89b3;font-size:13px;letter-spacing:.04em" id="app_fallback">Iniciando el panel…<br><br>Si no ves nada en unos segundos, abre este archivo en <b style="color:#2de1fc">Safari</b> o <b style="color:#2de1fc">Chrome</b> (Compartir → Abrir en Safari), no en la vista previa.</div></div>
+<div class="footer">Los gráficos del mes siguen el selector · Datos procesados localmente</div>
+</div>
+<script>
+const DEMO =
+{"trm":3270,"keys":[202607,202608,202609,202610,202611,202612,202701,202702,202703,202704,202705,202706],"labels":["jul-26","ago-26","sep-26","oct-26","nov-26","dic-26","ene-27","feb-27","mar-27","abr-27","may-27","jun-27"],"movs":[{"f":"2026-07-02T00:00:00","con":"Administración conjunto","sub":"Administración","cat":"Vivienda","med":"Littio Mastercard virtual *4053","v":261700,"k":202607},{"f":"2026-07-02T00:00:00","con":"Terpel","sub":"Gasolina","cat":"Transporte","med":"Littio Mastercard virtual *4053","v":42900,"k":202607},{"f":"2026-07-02T00:00:00","con":"Cabify","sub":"Taxi y apps de movilidad","cat":"Transporte","med":"Transferencia bancaria","v":69100,"k":202607},{"f":"2026-07-02T00:00:00","con":"Medicina prepagada","sub":"Medicina prepagada o EPS","cat":"Salud","med":"Littio Mastercard virtual *4053","v":356200,"k":202607},{"f":"2026-07-02T00:00:00","con":"Pago tarjeta de crédito","sub":"Pago tarjeta de crédito","cat":"Créditos y deudas","med":"Efectivo","v":184300,"k":202607},{"f":"2026-07-03T00:00:00","con":"Arriendo","sub":"Arriendo o cuota hipoteca","cat":"Vivienda","med":"Mastercard Davivienda *4930","v":1984500,"k":202607},{"f":"2026-07-03T00:00:00","con":"EAAB","sub":"Acueducto","cat":"Vivienda","med":"Visa Oro DAVIbank *6801","v":81600,"k":202607},{"f":"2026-07-03T00:00:00","con":"Cuota SOAT","sub":"SOAT e impuesto vehicular","cat":"Transporte","med":"Visa Oro DAVIbank *6801","v":52300,"k":202607},{"f":"2026-07-03T00:00:00","con":"Plan dental","sub":"Plan dental","cat":"Salud","med":"Mastercard Davivienda *4930","v":49700,"k":202607},{"f":"2026-07-03T00:00:00","con":"Seguro vehículo","sub":"Seguro de vehículo","cat":"Seguros","med":"Littio Mastercard virtual *4053","v":140900,"k":202607},{"f":"2026-07-03T00:00:00","con":"Zara","sub":"Ropa y calzado","cat":"Personal y hogar","med":"Efectivo","v":64100,"k":202607},{"f":"2026-07-03T00:00:00","con":"Cine","sub":"Entretenimiento y eventos","cat":"Ocio y viajes","med":"Visa Oro DAVIbank *6801","v":25300,"k":202607},{"f":"2026-07-04T00:00:00","con":"D1","sub":"Mercado","cat":"Alimentación","med":"Littio Mastercard virtual *4053","v":392000,"k":202607},{"f":"2026-07-04T00:00:00","con":"Seguro hogar","sub":"Seguro del hogar","cat":"Seguros","med":"Efectivo","v":30900,"k":202607},{"f":"2026-07-05T00:00:00","con":"Vanti","sub":"Gas","cat":"Vivienda","med":"Visa Oro DAVIbank *6801","v":29900,"k":202607},{"f":"2026-07-05T00:00:00","con":"Arreglo casa","sub":"Mantenimiento del hogar","cat":"Vivienda","med":"Visa Oro DAVIbank *6801","v":54600,"k":202607},{"f":"2026-07-05T00:00:00","con":"Biomax","sub":"Gasolina","cat":"Transporte","med":"Mastercard Davivienda *4930","v":85400,"k":202607},{"f":"2026-07-05T00:00:00","con":"Curso en línea","sub":"Cursos y formación","cat":"Educación","med":"Visa Oro DAVIbank *6801","v":68100,"k":202607},{"f":"2026-07-05T00:00:00","con":"Seguro de vida","sub":"Seguro de vida","cat":"Seguros","med":"Visa Oro DAVIbank *6801","v":79100,"k":202607},{"f":"2026-07-05T00:00:00","con":"Barbería","sub":"Cuidado personal","cat":"Personal y hogar","med":"Transferencia bancaria","v":20200,"k":202607},{"f":"2026-07-05T00:00:00","con":"Traslado a ahorro","sub":"Ahorro programado","cat":"Ahorro e inversión","med":"Transferencia bancaria","v":332600,"k":202607},{"f":"2026-07-05T00:00:00","con":"Aporte a inversión","sub":"Inversiones","cat":"Ahorro e inversión","med":"Nequi","v":199500,"k":202607},{"f":"2026-07-06T00:00:00","con":"Enel","sub":"Energía","cat":"Vivienda","med":"Visa Oro DAVIbank *6801","v":120200,"k":202607},{"f":"2026-07-06T00:00:00","con":"Claro hogar","sub":"Internet","cat":"Vivienda","med":"Mastercard Davivienda *4930","v":87900,"k":202607},{"f":"2026-07-06T00:00:00","con":"Plan celular","sub":"Telefonía celular","cat":"Vivienda","med":"Visa Oro DAVIbank *6801","v":96100,"k":202607},{"f":"2026-07-06T00:00:00","con":"Servicio doméstico","sub":"Empleada del servicio","cat":"Vivienda","med":"Visa Oro DAVIbank *6801","v":330500,"k":202607},{"f":"2026-07-06T00:00:00","con":"Mensualidad gimnasio","sub":"Gimnasio","cat":"Salud","med":"Mastercard Davivienda *4930","v":111900,"k":202607},{"f":"2026-07-06T00:00:00","con":"Traslado fondo de emergencia","sub":"Fondo de emergencia","cat":"Ahorro e inversión","med":"Transferencia bancaria","v":277800,"k":202607},{"f":"2026-07-07T00:00:00","con":"Corrientazo","sub":"Comidas fuera","cat":"Alimentación","med":"Visa Oro DAVIbank *6801","v":101900,"k":202607},{"f":"2026-07-07T00:00:00","con":"Lavado y revisión","sub":"Mantenimiento vehículo","cat":"Transporte","med":"Visa Oro DAVIbank *6801","v":22400,"k":202607},{"f":"2026-07-08T00:00:00","con":"Brunch domingo","sub":"Restaurantes y salidas","cat":"Ocio y viajes","med":"Littio Mastercard virtual *4053","v":102800,"k":202607},{"f":"2026-07-08T00:00:00","con":"Anticipo fin de semana Villa de Leyva","sub":"Viajes","cat":"Ocio y viajes","med":"Littio Mastercard virtual *4053","v":198000,"k":202607},{"f":"2026-07-08T00:00:00","con":"Concierto","sub":"Entretenimiento y eventos","cat":"Ocio y viajes","med":"Visa Oro DAVIbank *6801","v":24800,"k":202607},{"f":"2026-07-09T00:00:00","con":"Claude Pro","sub":"Herramientas de IA","cat":"Suscripciones","med":"Visa Oro DAVIbank *6801","v":65400,"k":202607},{"f":"2026-07-10T00:00:00","con":"Cabify","sub":"Taxi y apps de movilidad","cat":"Transporte","med":"Efectivo","v":83500,"k":202607},{"f":"2026-07-10T00:00:00","con":"Recarga TuLlave","sub":"Transporte público","cat":"Transporte","med":"Nequi","v":62900,"k":202607},{"f":"2026-07-12T00:00:00","con":"Google AI Plus","sub":"Herramientas de IA","cat":"Suscripciones","med":"Littio Mastercard virtual *4053","v":10000,"k":202607},{"f":"2026-07-13T00:00:00","con":"Lavado y revisión","sub":"Mantenimiento vehículo","cat":"Transporte","med":"Visa Oro DAVIbank *6801","v":25200,"k":202607},{"f":"2026-07-13T00:00:00","con":"Parqueadero centro comercial","sub":"Peajes y parqueaderos","cat":"Transporte","med":"Visa Oro DAVIbank *6801","v":21600,"k":202607},{"f":"2026-07-13T00:00:00","con":"Zara","sub":"Ropa y calzado","cat":"Personal y hogar","med":"Nequi","v":51400,"k":202607},{"f":"2026-07-14T00:00:00","con":"Carulla","sub":"Mercado","cat":"Alimentación","med":"Littio Mastercard virtual *4053","v":580000,"k":202607},{"f":"2026-07-14T00:00:00","con":"Peaje Chusacá","sub":"Peajes y parqueaderos","cat":"Transporte","med":"Nequi","v":22500,"k":202607},{"f":"2026-07-15T00:00:00","con":"Spotify","sub":"Streaming y entretenimiento digital","cat":"Suscripciones","med":"Littio Mastercard virtual *4053","v":24500,"k":202607},{"f":"2026-07-16T00:00:00","con":"Tostao","sub":"Café y antojos","cat":"Alimentación","med":"Transferencia bancaria","v":20000,"k":202607},{"f":"2026-07-16T00:00:00","con":"Farmacia personal","sub":"Cuidado personal","cat":"Personal y hogar","med":"Littio Mastercard virtual *4053","v":31600,"k":202607},{"f":"2026-07-16T00:00:00","con":"Farmacia personal","sub":"Cuidado personal","cat":"Personal y hogar","med":"Visa Oro DAVIbank *6801","v":28600,"k":202607},{"f":"2026-07-16T00:00:00","con":"Donación mensual","sub":"Donaciones","cat":"Otros","med":"Mastercard Davivienda *4930","v":29300,"k":202607},{"f":"2026-07-16T00:00:00","con":"Disney+","sub":"Streaming y entretenimiento digital","cat":"Suscripciones","med":"Littio Mastercard virtual *4053","v":54900,"k":202607},{"f":"2026-07-17T00:00:00","con":"Regalo cumpleaños","sub":"Regalos","cat":"Personal y hogar","med":"Visa Oro DAVIbank *6801","v":50900,"k":202607},{"f":"2026-07-17T00:00:00","con":"ChatGPT Plus","sub":"Herramientas de IA","cat":"Suscripciones","med":"Visa Oro DAVIbank *6801","v":99900,"k":202607},{"f":"2026-07-18T00:00:00","con":"Almuerzo oficina","sub":"Comidas fuera","cat":"Alimentación","med":"Efectivo","v":157700,"k":202607},{"f":"2026-07-18T00:00:00","con":"Cruz Verde","sub":"Medicamentos","cat":"Salud","med":"Efectivo","v":48800,"k":202607},{"f":"2026-07-19T00:00:00","con":"Domicilio pizza","sub":"Domicilios","cat":"Alimentación","med":"Mastercard Davivienda *4930","v":102700,"k":202607},{"f":"2026-07-19T00:00:00","con":"Tostao","sub":"Café y antojos","cat":"Alimentación","med":"Littio Mastercard virtual *4053","v":29100,"k":202607},{"f":"2026-07-19T00:00:00","con":"Biomax","sub":"Gasolina","cat":"Transporte","med":"Mastercard Davivienda *4930","v":57700,"k":202607},{"f":"2026-07-20T00:00:00","con":"Uber One","sub":"Otras suscripciones","cat":"Suscripciones","med":"Littio Mastercard virtual *4053","v":19900,"k":202607},{"f":"2026-07-21T00:00:00","con":"Cena aniversario","sub":"Restaurantes y salidas","cat":"Ocio y viajes","med":"Efectivo","v":106800,"k":202607},{"f":"2026-07-23T00:00:00","con":"Biomax","sub":"Gasolina","cat":"Transporte","med":"Efectivo","v":74400,"k":202607},{"f":"2026-07-23T00:00:00","con":"Cabify","sub":"Taxi y apps de movilidad","cat":"Transporte","med":"Visa Oro DAVIbank *6801","v":67000,"k":202607},{"f":"2026-07-23T00:00:00","con":"Consulta médica","sub":"Consultas y exámenes","cat":"Salud","med":"Littio Mastercard virtual *4053","v":63500,"k":202607},{"f":"2026-07-23T00:00:00","con":"Concierto","sub":"Entretenimiento y eventos","cat":"Ocio y viajes","med":"Littio Mastercard virtual *4053","v":19100,"k":202607},{"f":"2026-07-23T00:00:00","con":"El Tiempo","sub":"Prensa y noticias","cat":"Suscripciones","med":"Littio tarjeta física *0839","v":81900,"k":202607},{"f":"2026-07-24T00:00:00","con":"Cambio de aceite","sub":"Mantenimiento vehículo","cat":"Transporte","med":"Mastercard Davivienda *4930","v":27600,"k":202607},{"f":"2026-07-24T00:00:00","con":"Varios","sub":"Gastos varios","cat":"Otros","med":"Visa Oro DAVIbank *6801","v":42600,"k":202607},{"f":"2026-07-25T00:00:00","con":"Domicilio pizza","sub":"Domicilios","cat":"Alimentación","med":"Littio Mastercard virtual *4053","v":99800,"k":202607},{"f":"2026-07-25T00:00:00","con":"Concentrado y veterinario","sub":"Mascotas","cat":"Personal y hogar","med":"Nequi","v":75800,"k":202607},{"f":"2026-07-25T00:00:00","con":"Brunch domingo","sub":"Restaurantes y salidas","cat":"Ocio y viajes","med":"Mastercard Davivienda *4930","v":81700,"k":202607},{"f":"2026-07-26T00:00:00","con":"Cena aniversario","sub":"Restaurantes y salidas","cat":"Ocio y viajes","med":"Visa Oro DAVIbank *6801","v":71200,"k":202607},{"f":"2026-07-26T00:00:00","con":"Concierto","sub":"Entretenimiento y eventos","cat":"Ocio y viajes","med":"Mastercard Davivienda *4930","v":19100,"k":202607},{"f":"2026-07-26T00:00:00","con":"Reparación imprevista","sub":"Imprevistos","cat":"Otros","med":"Littio Mastercard virtual *4053","v":147100,"k":202607},{"f":"2026-07-27T00:00:00","con":"Productos de aseo","sub":"Aseo y productos del hogar","cat":"Personal y hogar","med":"Littio Mastercard virtual *4053","v":75000,"k":202607},{"f":"2026-07-27T00:00:00","con":"Impuesto predial cuota","sub":"Impuestos","cat":"Otros","med":"Mastercard Davivienda *4930","v":41700,"k":202607},{"f":"2026-07-28T00:00:00","con":"Peaje Chusacá","sub":"Peajes y parqueaderos","cat":"Transporte","med":"Transferencia bancaria","v":17900,"k":202607},{"f":"2026-08-01T00:00:00","con":"Lavado y revisión","sub":"Mantenimiento vehículo","cat":"Transporte","med":"Mastercard Davivienda *4930","v":25900,"k":202608},{"f":"2026-08-01T00:00:00","con":"Concierto","sub":"Entretenimiento y eventos","cat":"Ocio y viajes","med":"Mastercard Davivienda *4930","v":23100,"k":202608},{"f":"2026-08-01T00:00:00","con":"Impuesto predial cuota","sub":"Impuestos","cat":"Otros","med":"Mastercard Davivienda *4930","v":39300,"k":202608},{"f":"2026-08-02T00:00:00","con":"Arriendo","sub":"Arriendo o cuota hipoteca","cat":"Vivienda","med":"Visa Oro DAVIbank *6801","v":2514500,"k":202608},{"f":"2026-08-02T00:00:00","con":"Claro hogar","sub":"Internet","cat":"Vivienda","med":"Littio Mastercard virtual *4053","v":79700,"k":202608},{"f":"2026-08-02T00:00:00","con":"Corrientazo","sub":"Comidas fuera","cat":"Alimentación","med":"Nequi","v":90400,"k":202608},{"f":"2026-08-02T00:00:00","con":"Seguro de vida","sub":"Seguro de vida","cat":"Seguros","med":"Littio Mastercard virtual *4053","v":72700,"k":202608},{"f":"2026-08-02T00:00:00","con":"Barbería","sub":"Cuidado personal","cat":"Personal y hogar","med":"Visa Oro DAVIbank *6801","v":37900,"k":202608},{"f":"2026-08-02T00:00:00","con":"Concierto","sub":"Entretenimiento y eventos","cat":"Ocio y viajes","med":"Visa Oro DAVIbank *6801","v":29600,"k":202608},{"f":"2026-08-02T00:00:00","con":"Traslado a ahorro","sub":"Ahorro programado","cat":"Ahorro e inversión","med":"Transferencia bancaria","v":335100,"k":202608},{"f":"2026-08-02T00:00:00","con":"Traslado fondo de emergencia","sub":"Fondo de emergencia","cat":"Ahorro e inversión","med":"Transferencia bancaria","v":249200,"k":202608},{"f":"2026-08-03T00:00:00","con":"Vanti","sub":"Gas","cat":"Vivienda","med":"Visa Oro DAVIbank *6801","v":36000,"k":202608},{"f":"2026-08-03T00:00:00","con":"Plan celular","sub":"Telefonía celular","cat":"Vivienda","med":"Mastercard Davivienda *4930","v":125800,"k":202608},{"f":"2026-08-03T00:00:00","con":"Servicio doméstico","sub":"Empleada del servicio","cat":"Vivienda","med":"Visa Oro DAVIbank *6801","v":334600,"k":202608},{"f":"2026-08-03T00:00:00","con":"Arreglo casa","sub":"Mantenimiento del hogar","cat":"Vivienda","med":"Mastercard Davivienda *4930","v":43800,"k":202608},{"f":"2026-08-03T00:00:00","con":"Cuota SOAT","sub":"SOAT e impuesto vehicular","cat":"Transporte","med":"Mastercard Davivienda *4930","v":56600,"k":202608},{"f":"2026-08-03T00:00:00","con":"Curso en línea","sub":"Cursos y formación","cat":"Educación","med":"Visa Oro DAVIbank *6801","v":73700,"k":202608},{"f":"2026-08-04T00:00:00","con":"EAAB","sub":"Acueducto","cat":"Vivienda","med":"Visa Oro DAVIbank *6801","v":75000,"k":202608},{"f":"2026-08-04T00:00:00","con":"Parqueadero centro comercial","sub":"Peajes y parqueaderos","cat":"Transporte","med":"Mastercard Davivienda *4930","v":44000,"k":202608},{"f":"2026-08-04T00:00:00","con":"Medicina prepagada","sub":"Medicina prepagada o EPS","cat":"Salud","med":"Mastercard Davivienda *4930","v":380100,"k":202608},{"f":"2026-08-04T00:00:00","con":"Mensualidad gimnasio","sub":"Gimnasio","cat":"Salud","med":"Visa Oro DAVIbank *6801","v":82400,"k":202608},{"f":"2026-08-04T00:00:00","con":"Seguro hogar","sub":"Seguro del hogar","cat":"Seguros","med":"Efectivo","v":41000,"k":202608},{"f":"2026-08-04T00:00:00","con":"Productos de aseo","sub":"Aseo y productos del hogar","cat":"Personal y hogar","med":"Nequi","v":78900,"k":202608},{"f":"2026-08-05T00:00:00","con":"Administración conjunto","sub":"Administración","cat":"Vivienda","med":"Nequi","v":256200,"k":202608},{"f":"2026-08-05T00:00:00","con":"Carulla","sub":"Mercado","cat":"Alimentación","med":"Littio Mastercard virtual *4053","v":323100,"k":202608},{"f":"2026-08-05T00:00:00","con":"Varios","sub":"Gastos varios","cat":"Otros","med":"Mastercard Davivienda *4930","v":51800,"k":202608},{"f":"2026-08-06T00:00:00","con":"Enel","sub":"Energía","cat":"Vivienda","med":"Littio Mastercard virtual *4053","v":122900,"k":202608},{"f":"2026-08-06T00:00:00","con":"Plan dental","sub":"Plan dental","cat":"Salud","med":"Efectivo","v":38500,"k":202608},{"f":"2026-08-06T00:00:00","con":"Seguro vehículo","sub":"Seguro de vehículo","cat":"Seguros","med":"Mastercard Davivienda *4930","v":130300,"k":202608},{"f":"2026-08-06T00:00:00","con":"Pago tarjeta de crédito","sub":"Pago tarjeta de crédito","cat":"Créditos y deudas","med":"Transferencia bancaria","v":190700,"k":202608},{"f":"2026-08-06T00:00:00","con":"Zara","sub":"Ropa y calzado","cat":"Personal y hogar","med":"Mastercard Davivienda *4930","v":75400,"k":202608},{"f":"2026-08-06T00:00:00","con":"Aporte a inversión","sub":"Inversiones","cat":"Ahorro e inversión","med":"Nequi","v":175300,"k":202608},{"f":"2026-08-07T00:00:00","con":"Tostao","sub":"Café y antojos","cat":"Alimentación","med":"Visa Oro DAVIbank *6801","v":14500,"k":202608},{"f":"2026-08-07T00:00:00","con":"Biomax","sub":"Gasolina","cat":"Transporte","med":"Visa Oro DAVIbank *6801","v":142000,"k":202608},{"f":"2026-08-07T00:00:00","con":"Concentrado y veterinario","sub":"Mascotas","cat":"Personal y hogar","med":"Mastercard Davivienda *4930","v":63300,"k":202608},{"f":"2026-08-08T00:00:00","con":"Cabify","sub":"Taxi y apps de movilidad","cat":"Transporte","med":"Visa Oro DAVIbank *6801","v":46200,"k":202608},{"f":"2026-08-08T00:00:00","con":"Reparación imprevista","sub":"Imprevistos","cat":"Otros","med":"Efectivo","v":109100,"k":202608},{"f":"2026-08-09T00:00:00","con":"Parqueadero centro comercial","sub":"Peajes y parqueaderos","cat":"Transporte","med":"Visa Oro DAVIbank *6801","v":39000,"k":202608},{"f":"2026-08-09T00:00:00","con":"Cruz Verde","sub":"Medicamentos","cat":"Salud","med":"Transferencia bancaria","v":53000,"k":202608},{"f":"2026-08-09T00:00:00","con":"Consulta médica","sub":"Consultas y exámenes","cat":"Salud","med":"Nequi","v":54600,"k":202608},{"f":"2026-08-09T00:00:00","con":"Claude Pro","sub":"Herramientas de IA","cat":"Suscripciones","med":"Visa Oro DAVIbank *6801","v":65400,"k":202608},{"f":"2026-08-11T00:00:00","con":"Concierto","sub":"Entretenimiento y eventos","cat":"Ocio y viajes","med":"Visa Oro DAVIbank *6801","v":27200,"k":202608},{"f":"2026-08-12T00:00:00","con":"Google AI Plus","sub":"Herramientas de IA","cat":"Suscripciones","med":"Littio Mastercard virtual *4053","v":10000,"k":202608},{"f":"2026-08-13T00:00:00","con":"DiDi","sub":"Taxi y apps de movilidad","cat":"Transporte","med":"Visa Oro DAVIbank *6801","v":84500,"k":202608},{"f":"2026-08-13T00:00:00","con":"Recarga TuLlave","sub":"Transporte público","cat":"Transporte","med":"Mastercard Davivienda *4930","v":57200,"k":202608},{"f":"2026-08-13T00:00:00","con":"Regalo cumpleaños","sub":"Regalos","cat":"Personal y hogar","med":"Transferencia bancaria","v":61800,"k":202608},{"f":"2026-08-14T00:00:00","con":"Juan Valdez","sub":"Café y antojos","cat":"Alimentación","med":"Mastercard Davivienda *4930","v":15400,"k":202608},{"f":"2026-08-14T00:00:00","con":"Cena aniversario","sub":"Restaurantes y salidas","cat":"Ocio y viajes","med":"Visa Oro DAVIbank *6801","v":117800,"k":202608},{"f":"2026-08-15T00:00:00","con":"Domicilio pizza","sub":"Domicilios","cat":"Alimentación","med":"Efectivo","v":91600,"k":202608},{"f":"2026-08-15T00:00:00","con":"Lavado y revisión","sub":"Mantenimiento vehículo","cat":"Transporte","med":"Transferencia bancaria","v":19500,"k":202608},{"f":"2026-08-15T00:00:00","con":"Spotify","sub":"Streaming y entretenimiento digital","cat":"Suscripciones","med":"Littio Mastercard virtual *4053","v":24500,"k":202608},{"f":"2026-08-16T00:00:00","con":"Juan Valdez","sub":"Café y antojos","cat":"Alimentación","med":"Transferencia bancaria","v":15200,"k":202608},{"f":"2026-08-16T00:00:00","con":"Disney+","sub":"Streaming y entretenimiento digital","cat":"Suscripciones","med":"Littio Mastercard virtual *4053","v":54900,"k":202608},{"f":"2026-08-17T00:00:00","con":"Éxito","sub":"Mercado","cat":"Alimentación","med":"Littio Mastercard virtual *4053","v":165400,"k":202608},{"f":"2026-08-17T00:00:00","con":"Corrientazo","sub":"Comidas fuera","cat":"Alimentación","med":"Visa Oro DAVIbank *6801","v":53800,"k":202608},{"f":"2026-08-17T00:00:00","con":"Tostao","sub":"Café y antojos","cat":"Alimentación","med":"Littio Mastercard virtual *4053","v":17400,"k":202608},{"f":"2026-08-17T00:00:00","con":"Lavado y revisión","sub":"Mantenimiento vehículo","cat":"Transporte","med":"Littio Mastercard virtual *4053","v":25200,"k":202608},{"f":"2026-08-17T00:00:00","con":"ChatGPT Plus","sub":"Herramientas de IA","cat":"Suscripciones","med":"Visa Oro DAVIbank *6801","v":99900,"k":202608},{"f":"2026-08-18T00:00:00","con":"Almuerzo oficina","sub":"Comidas fuera","cat":"Alimentación","med":"Visa Oro DAVIbank *6801","v":71400,"k":202608},{"f":"2026-08-18T00:00:00","con":"Rappi","sub":"Domicilios","cat":"Alimentación","med":"Visa Oro DAVIbank *6801","v":110900,"k":202608},{"f":"2026-08-19T00:00:00","con":"Donación mensual","sub":"Donaciones","cat":"Otros","med":"Mastercard Davivienda *4930","v":29700,"k":202608},{"f":"2026-08-20T00:00:00","con":"Uber One","sub":"Otras suscripciones","cat":"Suscripciones","med":"Littio Mastercard virtual *4053","v":19900,"k":202608},{"f":"2026-08-21T00:00:00","con":"Falabella","sub":"Ropa y calzado","cat":"Personal y hogar","med":"Littio Mastercard virtual *4053","v":44400,"k":202608},{"f":"2026-08-21T00:00:00","con":"Brunch domingo","sub":"Restaurantes y salidas","cat":"Ocio y viajes","med":"Mastercard Davivienda *4930","v":244700,"k":202608},{"f":"2026-08-22T00:00:00","con":"Ara","sub":"Mercado","cat":"Alimentación","med":"Littio Mastercard virtual *4053","v":264000,"k":202608},{"f":"2026-08-22T00:00:00","con":"Uber","sub":"Taxi y apps de movilidad","cat":"Transporte","med":"Visa Oro DAVIbank *6801","v":88900,"k":202608},{"f":"2026-08-23T00:00:00","con":"El Tiempo","sub":"Prensa y noticias","cat":"Suscripciones","med":"Littio tarjeta física *0839","v":81900,"k":202608},{"f":"2026-08-24T00:00:00","con":"D1","sub":"Mercado","cat":"Alimentación","med":"Littio Mastercard virtual *4053","v":219500,"k":202608},{"f":"2026-08-24T00:00:00","con":"Almuerzo oficina","sub":"Comidas fuera","cat":"Alimentación","med":"Littio Mastercard virtual *4053","v":44000,"k":202608},{"f":"2026-08-24T00:00:00","con":"Barbería","sub":"Cuidado personal","cat":"Personal y hogar","med":"Littio Mastercard virtual *4053","v":27200,"k":202608},{"f":"2026-08-25T00:00:00","con":"Terpel","sub":"Gasolina","cat":"Transporte","med":"Transferencia bancaria","v":117800,"k":202608},{"f":"2026-08-26T00:00:00","con":"Barbería","sub":"Cuidado personal","cat":"Personal y hogar","med":"Mastercard Davivienda *4930","v":31900,"k":202608},{"f":"2026-08-28T00:00:00","con":"Anticipo fin de semana Villa de Leyva","sub":"Viajes","cat":"Ocio y viajes","med":"Efectivo","v":149600,"k":202608},{"f":"2026-09-01T00:00:00","con":"DiDi","sub":"Taxi y apps de movilidad","cat":"Transporte","med":"Nequi","v":124300,"k":202609},{"f":"2026-09-01T00:00:00","con":"Productos de aseo","sub":"Aseo y productos del hogar","cat":"Personal y hogar","med":"Mastercard Davivienda *4930","v":88800,"k":202609},{"f":"2026-09-01T00:00:00","con":"Reparación imprevista","sub":"Imprevistos","cat":"Otros","med":"Littio Mastercard virtual *4053","v":120900,"k":202609},{"f":"2026-09-02T00:00:00","con":"Claro hogar","sub":"Internet","cat":"Vivienda","med":"Nequi","v":109500,"k":202609},{"f":"2026-09-02T00:00:00","con":"Arreglo casa","sub":"Mantenimiento del hogar","cat":"Vivienda","med":"Mastercard Davivienda *4930","v":50300,"k":202609},{"f":"2026-09-02T00:00:00","con":"Salida con amigos","sub":"Restaurantes y salidas","cat":"Ocio y viajes","med":"Transferencia bancaria","v":74300,"k":202609},{"f":"2026-09-02T00:00:00","con":"Traslado fondo de emergencia","sub":"Fondo de emergencia","cat":"Ahorro e inversión","med":"Transferencia bancaria","v":272400,"k":202609},{"f":"2026-09-03T00:00:00","con":"Plan celular","sub":"Telefonía celular","cat":"Vivienda","med":"Visa Oro DAVIbank *6801","v":118700,"k":202609},{"f":"2026-09-03T00:00:00","con":"Servicio doméstico","sub":"Empleada del servicio","cat":"Vivienda","med":"Nequi","v":233700,"k":202609},{"f":"2026-09-03T00:00:00","con":"Terpel","sub":"Gasolina","cat":"Transporte","med":"Transferencia bancaria","v":64000,"k":202609},{"f":"2026-09-03T00:00:00","con":"Cuota SOAT","sub":"SOAT e impuesto vehicular","cat":"Transporte","med":"Mastercard Davivienda *4930","v":72000,"k":202609},{"f":"2026-09-03T00:00:00","con":"Traslado a ahorro","sub":"Ahorro programado","cat":"Ahorro e inversión","med":"Transferencia bancaria","v":391300,"k":202609},{"f":"2026-09-04T00:00:00","con":"Cambio de aceite","sub":"Mantenimiento vehículo","cat":"Transporte","med":"Transferencia bancaria","v":24400,"k":202609},{"f":"2026-09-04T00:00:00","con":"Medicina prepagada","sub":"Medicina prepagada o EPS","cat":"Salud","med":"Visa Oro DAVIbank *6801","v":328300,"k":202609},{"f":"2026-09-04T00:00:00","con":"Mensualidad gimnasio","sub":"Gimnasio","cat":"Salud","med":"Littio Mastercard virtual *4053","v":106500,"k":202609},{"f":"2026-09-04T00:00:00","con":"Seguro vehículo","sub":"Seguro de vehículo","cat":"Seguros","med":"Transferencia bancaria","v":146300,"k":202609},{"f":"2026-09-04T00:00:00","con":"Seguro hogar","sub":"Seguro del hogar","cat":"Seguros","med":"Mastercard Davivienda *4930","v":38600,"k":202609},{"f":"2026-09-04T00:00:00","con":"Pago tarjeta de crédito","sub":"Pago tarjeta de crédito","cat":"Créditos y deudas","med":"Littio Mastercard virtual *4053","v":234100,"k":202609},{"f":"2026-09-04T00:00:00","con":"Aporte a inversión","sub":"Inversiones","cat":"Ahorro e inversión","med":"Visa Oro DAVIbank *6801","v":186600,"k":202609},{"f":"2026-09-05T00:00:00","con":"Arriendo","sub":"Arriendo o cuota hipoteca","cat":"Vivienda","med":"Visa Oro DAVIbank *6801","v":2298800,"k":202609},{"f":"2026-09-05T00:00:00","con":"Biomax","sub":"Gasolina","cat":"Transporte","med":"Visa Oro DAVIbank *6801","v":51300,"k":202609},{"f":"2026-09-05T00:00:00","con":"Recarga TuLlave","sub":"Transporte público","cat":"Transporte","med":"Mastercard Davivienda *4930","v":52100,"k":202609},{"f":"2026-09-05T00:00:00","con":"Plan dental","sub":"Plan dental","cat":"Salud","med":"Visa Oro DAVIbank *6801","v":48800,"k":202609},{"f":"2026-09-05T00:00:00","con":"Seguro de vida","sub":"Seguro de vida","cat":"Seguros","med":"Mastercard Davivienda *4930","v":69900,"k":202609},{"f":"2026-09-05T00:00:00","con":"Cine","sub":"Entretenimiento y eventos","cat":"Ocio y viajes","med":"Littio Mastercard virtual *4053","v":23000,"k":202609},{"f":"2026-09-06T00:00:00","con":"Administración conjunto","sub":"Administración","cat":"Vivienda","med":"Nequi","v":227900,"k":202609},{"f":"2026-09-06T00:00:00","con":"Enel","sub":"Energía","cat":"Vivienda","med":"Nequi","v":122800,"k":202609},{"f":"2026-09-06T00:00:00","con":"EAAB","sub":"Acueducto","cat":"Vivienda","med":"Visa Oro DAVIbank *6801","v":68900,"k":202609},{"f":"2026-09-06T00:00:00","con":"Vanti","sub":"Gas","cat":"Vivienda","med":"Efectivo","v":40800,"k":202609},{"f":"2026-09-06T00:00:00","con":"Curso en línea","sub":"Cursos y formación","cat":"Educación","med":"Visa Oro DAVIbank *6801","v":58900,"k":202609},{"f":"2026-09-07T00:00:00","con":"Tostao","sub":"Café y antojos","cat":"Alimentación","med":"Visa Oro DAVIbank *6801","v":13300,"k":202609},{"f":"2026-09-07T00:00:00","con":"Terpel","sub":"Gasolina","cat":"Transporte","med":"Efectivo","v":91700,"k":202609},{"f":"2026-09-08T00:00:00","con":"Falabella","sub":"Ropa y calzado","cat":"Personal y hogar","med":"Mastercard Davivienda *4930","v":61200,"k":202609},{"f":"2026-09-08T00:00:00","con":"Farmacia personal","sub":"Cuidado personal","cat":"Personal y hogar","med":"Mastercard Davivienda *4930","v":36900,"k":202609},{"f":"2026-09-08T00:00:00","con":"Salida con amigos","sub":"Restaurantes y salidas","cat":"Ocio y viajes","med":"Mastercard Davivienda *4930","v":100400,"k":202609},{"f":"2026-09-09T00:00:00","con":"Éxito","sub":"Mercado","cat":"Alimentación","med":"Littio Mastercard virtual *4053","v":202400,"k":202609},{"f":"2026-09-09T00:00:00","con":"Domicilio pizza","sub":"Domicilios","cat":"Alimentación","med":"Efectivo","v":38700,"k":202609},{"f":"2026-09-09T00:00:00","con":"Parqueadero centro comercial","sub":"Peajes y parqueaderos","cat":"Transporte","med":"Visa Oro DAVIbank *6801","v":13100,"k":202609},{"f":"2026-09-09T00:00:00","con":"Claude Pro","sub":"Herramientas de IA","cat":"Suscripciones","med":"Visa Oro DAVIbank *6801","v":65400,"k":202609},{"f":"2026-09-10T00:00:00","con":"Tostao","sub":"Café y antojos","cat":"Alimentación","med":"Littio Mastercard virtual *4053","v":9100,"k":202609},{"f":"2026-09-10T00:00:00","con":"Cena aniversario","sub":"Restaurantes y salidas","cat":"Ocio y viajes","med":"Visa Oro DAVIbank *6801","v":70300,"k":202609},{"f":"2026-09-11T00:00:00","con":"Varios","sub":"Gastos varios","cat":"Otros","med":"Littio Mastercard virtual *4053","v":41000,"k":202609},{"f":"2026-09-12T00:00:00","con":"Google AI Plus","sub":"Herramientas de IA","cat":"Suscripciones","med":"Littio Mastercard virtual *4053","v":19900,"k":202609},{"f":"2026-09-13T00:00:00","con":"Uber","sub":"Taxi y apps de movilidad","cat":"Transporte","med":"Visa Oro DAVIbank *6801","v":95300,"k":202609},{"f":"2026-09-13T00:00:00","con":"Regalo cumpleaños","sub":"Regalos","cat":"Personal y hogar","med":"Mastercard Davivienda *4930","v":60000,"k":202609},{"f":"2026-09-14T00:00:00","con":"Peaje Chusacá","sub":"Peajes y parqueaderos","cat":"Transporte","med":"Visa Oro DAVIbank *6801","v":12900,"k":202609},{"f":"2026-09-14T00:00:00","con":"Consulta médica","sub":"Consultas y exámenes","cat":"Salud","med":"Efectivo","v":52300,"k":202609},{"f":"2026-09-14T00:00:00","con":"Impuesto predial cuota","sub":"Impuestos","cat":"Otros","med":"Visa Oro DAVIbank *6801","v":46300,"k":202609},{"f":"2026-09-15T00:00:00","con":"Juan Valdez","sub":"Café y antojos","cat":"Alimentación","med":"Littio Mastercard virtual *4053","v":10400,"k":202609},{"f":"2026-09-15T00:00:00","con":"Spotify","sub":"Streaming y entretenimiento digital","cat":"Suscripciones","med":"Littio Mastercard virtual *4053","v":24500,"k":202609},{"f":"2026-09-16T00:00:00","con":"Rappi","sub":"Domicilios","cat":"Alimentación","med":"Littio Mastercard virtual *4053","v":46100,"k":202609},{"f":"2026-09-16T00:00:00","con":"Juan Valdez","sub":"Café y antojos","cat":"Alimentación","med":"Mastercard Davivienda *4930","v":15700,"k":202609},{"f":"2026-09-16T00:00:00","con":"Disney+","sub":"Streaming y entretenimiento digital","cat":"Suscripciones","med":"Littio Mastercard virtual *4053","v":54900,"k":202609},{"f":"2026-09-17T00:00:00","con":"Éxito","sub":"Mercado","cat":"Alimentación","med":"Nequi","v":323900,"k":202609},{"f":"2026-09-17T00:00:00","con":"Éxito","sub":"Mercado","cat":"Alimentación","med":"Transferencia bancaria","v":251400,"k":202609},{"f":"2026-09-17T00:00:00","con":"Biomax","sub":"Gasolina","cat":"Transporte","med":"Mastercard Davivienda *4930","v":54400,"k":202609},{"f":"2026-09-17T00:00:00","con":"Falabella","sub":"Ropa y calzado","cat":"Personal y hogar","med":"Littio Mastercard virtual *4053","v":38200,"k":202609},{"f":"2026-09-17T00:00:00","con":"ChatGPT Plus","sub":"Herramientas de IA","cat":"Suscripciones","med":"Visa Oro DAVIbank *6801","v":99900,"k":202609},{"f":"2026-09-18T00:00:00","con":"Cruz Verde","sub":"Medicamentos","cat":"Salud","med":"Transferencia bancaria","v":59300,"k":202609},{"f":"2026-09-18T00:00:00","con":"Barbería","sub":"Cuidado personal","cat":"Personal y hogar","med":"Mastercard Davivienda *4930","v":39700,"k":202609},{"f":"2026-09-18T00:00:00","con":"Cine","sub":"Entretenimiento y eventos","cat":"Ocio y viajes","med":"Visa Oro DAVIbank *6801","v":12300,"k":202609},{"f":"2026-09-19T00:00:00","con":"Rappi","sub":"Domicilios","cat":"Alimentación","med":"Visa Oro DAVIbank *6801","v":67200,"k":202609},{"f":"2026-09-19T00:00:00","con":"Parqueadero centro comercial","sub":"Peajes y parqueaderos","cat":"Transporte","med":"Mastercard Davivienda *4930","v":11900,"k":202609},{"f":"2026-09-19T00:00:00","con":"Concentrado y veterinario","sub":"Mascotas","cat":"Personal y hogar","med":"Visa Oro DAVIbank *6801","v":77500,"k":202609},{"f":"2026-09-19T00:00:00","con":"Anticipo fin de semana Villa de Leyva","sub":"Viajes","cat":"Ocio y viajes","med":"Visa Oro DAVIbank *6801","v":194400,"k":202609},{"f":"2026-09-19T00:00:00","con":"Donación mensual","sub":"Donaciones","cat":"Otros","med":"Mastercard Davivienda *4930","v":22300,"k":202609},{"f":"2026-09-20T00:00:00","con":"Rappi","sub":"Domicilios","cat":"Alimentación","med":"Mastercard Davivienda *4930","v":50400,"k":202609},{"f":"2026-09-20T00:00:00","con":"Uber One","sub":"Otras suscripciones","cat":"Suscripciones","med":"Littio Mastercard virtual *4053","v":19900,"k":202609},{"f":"2026-09-21T00:00:00","con":"Salida con amigos","sub":"Restaurantes y salidas","cat":"Ocio y viajes","med":"Mastercard Davivienda *4930","v":117400,"k":202609},{"f":"2026-09-22T00:00:00","con":"Cine","sub":"Entretenimiento y eventos","cat":"Ocio y viajes","med":"Transferencia bancaria","v":24700,"k":202609},{"f":"2026-09-23T00:00:00","con":"Concierto","sub":"Entretenimiento y eventos","cat":"Ocio y viajes","med":"Visa Oro DAVIbank *6801","v":14300,"k":202609},{"f":"2026-09-23T00:00:00","con":"El Tiempo","sub":"Prensa y noticias","cat":"Suscripciones","med":"Littio tarjeta física *0839","v":81900,"k":202609},{"f":"2026-09-24T00:00:00","con":"Corrientazo","sub":"Comidas fuera","cat":"Alimentación","med":"Littio Mastercard virtual *4053","v":100100,"k":202609},{"f":"2026-09-25T00:00:00","con":"Almuerzo oficina","sub":"Comidas fuera","cat":"Alimentación","med":"Visa Oro DAVIbank *6801","v":97800,"k":202609},{"f":"2026-09-25T00:00:00","con":"Lavado y revisión","sub":"Mantenimiento vehículo","cat":"Transporte","med":"Mastercard Davivienda *4930","v":51600,"k":202609},{"f":"2026-09-25T00:00:00","con":"Falabella","sub":"Ropa y calzado","cat":"Personal y hogar","med":"Mastercard Davivienda *4930","v":36200,"k":202609},{"f":"2026-09-26T00:00:00","con":"Éxito","sub":"Mercado","cat":"Alimentación","med":"Transferencia bancaria","v":194300,"k":202609},{"f":"2026-09-27T00:00:00","con":"Peaje Chusacá","sub":"Peajes y parqueaderos","cat":"Transporte","med":"Nequi","v":20000,"k":202609},{"f":"2026-09-28T00:00:00","con":"Corrientazo","sub":"Comidas fuera","cat":"Alimentación","med":"Visa Oro DAVIbank *6801","v":61700,"k":202609}],"bud":{"Arriendo o cuota hipoteca":[2400000,2400000,2400000,2400000,2400000,2400000,2400000,2400000,2400000,2400000,2400000,2400000],"Administración":[280000,280000,280000,280000,280000,280000,280000,280000,280000,280000,280000,280000],"Energía":[160000,160000,160000,160000,160000,160000,160000,160000,160000,160000,160000,160000],"Acueducto":[80000,80000,80000,80000,80000,80000,80000,80000,80000,80000,80000,80000],"Gas":[40000,40000,40000,40000,40000,40000,40000,40000,40000,40000,40000,40000],"Internet":[110000,110000,110000,110000,110000,110000,110000,110000,110000,110000,110000,110000],"Telefonía celular":[130000,130000,130000,130000,130000,130000,130000,130000,130000,130000,130000,130000],"Empleada del servicio":[320000,320000,320000,320000,320000,320000,320000,320000,320000,320000,320000,320000],"Mantenimiento del hogar":[60000,60000,60000,60000,60000,60000,60000,60000,60000,60000,60000,60000],"Mercado":[900000,900000,900000,900000,900000,900000,900000,900000,900000,900000,900000,900000],"Comidas fuera":[220000,220000,220000,220000,220000,220000,220000,220000,220000,220000,220000,220000],"Domicilios":[150000,150000,150000,150000,150000,150000,150000,150000,150000,150000,150000,150000],"Café y antojos":[60000,60000,60000,60000,60000,60000,60000,60000,60000,60000,60000,60000],"Gasolina":[300000,300000,300000,300000,300000,300000,300000,300000,300000,300000,300000,300000],"Taxi y apps de movilidad":[180000,180000,180000,180000,180000,180000,180000,180000,180000,180000,180000,180000],"Transporte público":[60000,60000,60000,60000,60000,60000,60000,60000,60000,60000,60000,60000],"Mantenimiento vehículo":[90000,90000,90000,90000,90000,90000,90000,90000,90000,90000,90000,90000],"Peajes y parqueaderos":[80000,80000,80000,80000,80000,80000,80000,80000,80000,80000,80000,80000],"SOAT e impuesto vehicular":[70000,70000,70000,70000,70000,70000,70000,70000,70000,70000,70000,70000],"Medicina prepagada o EPS":[380000,380000,380000,380000,380000,380000,380000,380000,380000,380000,380000,380000],"Plan dental":[50000,50000,50000,50000,50000,50000,50000,50000,50000,50000,50000,50000],"Medicamentos":[60000,60000,60000,60000,60000,60000,60000,60000,60000,60000,60000,60000],"Consultas y exámenes":[70000,70000,70000,70000,70000,70000,70000,70000,70000,70000,70000,70000],"Gimnasio":[110000,110000,110000,110000,110000,110000,110000,110000,110000,110000,110000,110000],"Pensión escolar":[0,0,0,0,0,0,0,0,0,0,0,0],"Ruta escolar":[0,0,0,0,0,0,0,0,0,0,0,0],"Alimentación escolar":[0,0,0,0,0,0,0,0,0,0,0,0],"Actividades extracurriculares":[0,0,0,0,0,0,0,0,0,0,0,0],"Cursos y formación":[80000,80000,80000,80000,80000,80000,80000,80000,80000,80000,80000,80000],"Streaming y entretenimiento digital":[79400,79400,79400,79400,79400,79400,79400,79400,79400,79400,79400,79400],"Herramientas de IA":[204730,204730,214630,214630,214630,214630,214630,214630,214630,214630,214630,214630],"Prensa y noticias":[81900,81900,81900,81900,81900,81900,81900,81900,81900,81900,81900,81900],"Software y almacenamiento":[24232,24232,24232,24232,24232,24232,24232,24232,24232,24232,24232,24232],"Otras suscripciones":[19900,19900,19900,19900,19900,19900,19900,19900,19900,19900,19900,19900],"Seguro de vida":[90000,90000,90000,90000,90000,90000,90000,90000,90000,90000,90000,90000],"Seguro de vehículo":[180000,180000,180000,180000,180000,180000,180000,180000,180000,180000,180000,180000],"Seguro del hogar":[40000,40000,40000,40000,40000,40000,40000,40000,40000,40000,40000,40000],"Otros seguros":[0,0,0,0,0,0,0,0,0,0,0,0],"Cuota crédito hipotecario":[0,0,0,0,0,0,0,0,0,0,0,0],"Cuota crédito vehículo":[0,0,0,0,0,0,0,0,0,0,0,0],"Pago tarjeta de crédito":[250000,250000,250000,250000,250000,250000,250000,250000,250000,250000,250000,250000],"Crédito de libre inversión":[0,0,0,0,0,0,0,0,0,0,0,0],"Otros créditos":[0,0,0,0,0,0,0,0,0,0,0,0],"Ropa y calzado":[150000,150000,150000,150000,150000,150000,150000,150000,150000,150000,150000,150000],"Cuidado personal":[100000,100000,100000,100000,100000,100000,100000,100000,100000,100000,100000,100000],"Aseo y productos del hogar":[90000,90000,90000,90000,90000,90000,90000,90000,90000,90000,90000,90000],"Regalos":[70000,70000,70000,70000,70000,70000,70000,70000,70000,70000,70000,70000],"Mascotas":[80000,80000,80000,80000,80000,80000,80000,80000,80000,80000,80000,80000],"Restaurantes y salidas":[250000,250000,250000,250000,250000,250000,250000,250000,250000,250000,250000,250000],"Viajes":[200000,200000,200000,200000,200000,200000,200000,200000,200000,200000,200000,200000],"Entretenimiento y eventos":[100000,100000,100000,100000,100000,100000,100000,100000,100000,100000,100000,100000],"Ahorro programado":[400000,400000,400000,400000,400000,400000,400000,400000,400000,400000,400000,400000],"Fondo de emergencia":[300000,300000,300000,300000,300000,300000,300000,300000,300000,300000,300000,300000],"Inversiones":[200000,200000,200000,200000,200000,200000,200000,200000,200000,200000,200000,200000],"Aportes voluntarios a pensión":[0,0,0,0,0,0,0,0,0,0,0,0],"Impuestos":[50000,50000,50000,50000,50000,50000,50000,50000,50000,50000,50000,50000],"Donaciones":[30000,30000,30000,30000,30000,30000,30000,30000,30000,30000,30000,30000],"Imprevistos":[150000,150000,150000,150000,150000,150000,150000,150000,150000,150000,150000,150000],"Gastos varios":[50000,50000,50000,50000,50000,50000,50000,50000,50000,50000,50000,50000]},"neto":[10220000,10220000,10220000,10220000,10220000,11420000,10220000,10220000,10220000,10220000,10220000,10220000],"subs":[{"s":"ChatGPT Plus (OpenAI)","sub":"Herramientas de IA","mon":"COP","cop":99900,"mes":99900,"per":"Mensual","prox":"2026-08-17T00:00:00","med":"Visa Oro DAVIbank *6801"},{"s":"Claude Pro (Anthropic)","sub":"Herramientas de IA","mon":"USD","cop":65400,"mes":65400,"per":"Mensual","prox":"2026-08-09T00:00:00","med":"Visa Oro DAVIbank *6801"},{"s":"Google AI Plus 400 GB","sub":"Herramientas de IA","mon":"COP","cop":10000,"mes":10000,"per":"Mensual","prox":"2026-08-12T00:00:00","med":"Littio Mastercard virtual *4053"},{"s":"Gamma Plus","sub":"Herramientas de IA","mon":"USD","cop":353160,"mes":29430,"per":"Anual","prox":"2027-06-02T00:00:00","med":"Mastercard Davivienda *4930"},{"s":"Disney+","sub":"Streaming y entretenimiento digital","mon":"COP","cop":54900,"mes":54900,"per":"Mensual","prox":"2026-08-16T00:00:00","med":"Littio Mastercard virtual *4053"},{"s":"Spotify","sub":"Streaming y entretenimiento digital","mon":"COP","cop":24500,"mes":24500,"per":"Mensual","prox":"2026-08-15T00:00:00","med":"Littio Mastercard virtual *4053"},{"s":"Suscripciones El Tiempo","sub":"Prensa y noticias","mon":"COP","cop":81900,"mes":81900,"per":"Mensual","prox":"2026-08-23T00:00:00","med":"Littio tarjeta física *0839"},{"s":"DataCamp","sub":"Software y almacenamiento","mon":"COP","cop":290780,"mes":24232,"per":"Anual","prox":"2026-12-22T00:00:00","med":"Mastercard Davivienda *4930"},{"s":"Uber One","sub":"Otras suscripciones","mon":"COP","cop":19900,"mes":19900,"per":"Mensual","prox":"2026-08-20T00:00:00","med":"Littio Mastercard virtual *4053"}],"metas":[{"n":"Fondo de emergencia (6 meses de gastos)","obj":58000000,"hoy":21500000,"ap":300000},{"n":"Cuota inicial apartamento","obj":90000000,"hoy":12000000,"ap":400000},{"n":"Viaje familiar","obj":12000000,"hoy":3800000,"ap":200000},{"n":"Cambio de carro","obj":45000000,"hoy":6200000,"ap":250000}]};
+
+// ================= LECTOR XLSX NATIVO (sin librerías) =================
+async function inflateRaw(bytes){
+  if(typeof DecompressionStream==='undefined')throw new Error('Este navegador no soporta lectura de Excel. Actualiza iOS/el navegador.');
+  const ds=new DecompressionStream('deflate-raw');
+  const stream=new Blob([bytes]).stream().pipeThrough(ds);
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+const td=new TextDecoder('utf-8');
+const u16=(b,o)=>b[o]|(b[o+1]<<8);
+const u32=(b,o)=>(b[o]|(b[o+1]<<8)|(b[o+2]<<16)|(b[o+3]*16777216))>>>0;
+async function unzip(buf){
+  const b=new Uint8Array(buf);let eocd=-1;
+  for(let i=b.length-22;i>=0;i--){if(b[i]===0x50&&b[i+1]===0x4b&&b[i+2]===0x05&&b[i+3]===0x06){eocd=i;break;}}
+  if(eocd<0)throw new Error('Archivo .xlsx inválido');
+  const cnt=u16(b,eocd+10);let p=u32(b,eocd+16);const files={};
+  for(let n=0;n<cnt;n++){if(u32(b,p)!==0x02014b50)break;
+    const method=u16(b,p+10),csize=u32(b,p+20),fnlen=u16(b,p+28),exlen=u16(b,p+30),cmlen=u16(b,p+32),lho=u32(b,p+42);
+    files[td.decode(b.subarray(p+46,p+46+fnlen))]={method,csize,lho};p+=46+fnlen+exlen+cmlen;}
+  const out={};
+  for(const name in files){const f=files[name];const lh=f.lho;if(u32(b,lh)!==0x04034b50)continue;
+    const lfn=u16(b,lh+26),lex=u16(b,lh+28),start=lh+30+lfn+lex;
+    const data=b.subarray(start,start+f.csize);
+    out[name]=td.decode(f.method===0?data:f.method===8?await inflateRaw(data):new Uint8Array());}
+  return out;
+}
+const decodeXml=s=>s.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&#(\d+);/g,(m,d)=>String.fromCharCode(+d)).replace(/&amp;/g,'&');
+const colToIdx=ref=>{let s=0;for(let i=0;i<ref.length;i++){const c=ref.charCodeAt(i);if(c>=65&&c<=90)s=s*26+(c-64);else break;}return s-1;};
+function parseSheet(xml,shared){const rows=[];
+  const rowRe=/<row[^>]*r="(\d+)"[^>]*>([\s\S]*?)<\/row>/g,cellRe=/<c\s+([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g;let rm;
+  while((rm=rowRe.exec(xml))){const arr=rows[+rm[1]-1]||(rows[+rm[1]-1]=[]);const body=rm[2];let cm;
+    while((cm=cellRe.exec(body))){const attrs=cm[1],inner=cm[2]||'';
+      const rMatch=/r="([A-Z]+\d+)"/.exec(attrs);if(!rMatch)continue;const ci=colToIdx(rMatch[1]);
+      const t=(/t="([^"]+)"/.exec(attrs)||[])[1];let val=null;
+      if(t==='s'){const v=(/<v>([\s\S]*?)<\/v>/.exec(inner)||[])[1];if(v!=null)val=shared[+v];}
+      else if(t==='inlineStr'){const v=(/<t[^>]*>([\s\S]*?)<\/t>/.exec(inner)||[])[1];val=v!=null?decodeXml(v):null;}
+      else if(t==='str'){const v=(/<v>([\s\S]*?)<\/v>/.exec(inner)||[])[1];val=v!=null?decodeXml(v):null;}
+      else {const v=(/<v>([\s\S]*?)<\/v>/.exec(inner)||[])[1];if(v!=null&&v!=='')val=parseFloat(v);}
+      arr[ci]=val;}}
+  for(let i=0;i<rows.length;i++)if(!rows[i])rows[i]=[];return rows;}
+function parseShared(xml){if(!xml)return [];const out=[];let m;const re=/<si>([\s\S]*?)<\/si>/g;
+  while((m=re.exec(xml)))out.push([...m[1].matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map(x=>decodeXml(x[1])).join(''));return out;}
+async function readXlsx(buf){const zip=await unzip(buf);const shared=parseShared(zip['xl/sharedStrings.xml']);
+  const wbXml=zip['xl/workbook.xml']||'',relXml=zip['xl/_rels/workbook.xml.rels']||'',rels={};
+  for(const m of relXml.matchAll(/<Relationship[^>]*Id="([^"]+)"[^>]*Target="([^"]+)"[^>]*\/>/g))rels[m[1]]=m[2].replace(/^\/?xl\//,'').replace(/^\//,'');
+  const Sheets={},SheetNames=[];
+  for(const m of wbXml.matchAll(/<sheet[^>]*name="([^"]+)"[^>]*r:id="([^"]+)"[^>]*\/>/g)){
+    const name=decodeXml(m[1]);let tgt=rels[m[2]];if(!tgt)continue;
+    const xml=zip['xl/'+tgt.replace(/^xl\//,'')]||zip[tgt];SheetNames.push(name);Sheets[name]=xml?parseSheet(xml,shared):[];}
+  return {SheetNames,Sheets};}
+
+// ================= UTILIDADES =================
+const CATS=['Vivienda','Alimentación','Transporte','Salud','Educación','Suscripciones','Seguros','Créditos y deudas','Personal y hogar','Ocio y viajes','Ahorro e inversión','Otros'];
+const CC=['#2de1fc','#f5c518','#ff8a3d','#ff477e','#3ce6c4','#8b5cff','#5bd1ff','#ffd23f','#ff5ca8','#a6f24d','#4d8bff','#8aa0c0'];
+const catColor=c=>CC[Math.max(0,CATS.indexOf(c))%CC.length];
+const fmt=n=>{n=Math.round(n||0);const s=n<0?'-':'';n=Math.abs(n);return s+'$'+n.toLocaleString('es-CO');};
+const fmtK=n=>{n=Math.round(n||0);const s=n<0?'-':'';n=Math.abs(n);if(n>=1e6)return s+'$'+(n/1e6).toFixed(1)+'M';if(n>=1e3)return s+'$'+Math.round(n/1e3)+'k';return s+'$'+n;};
+const pct=n=>(n*100).toFixed(n>=1||n<=-1?0:1)+'%';
+const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const norm=s=>String(s||'').toLowerCase().replace(/\s+/g,'').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+function num(x){if(typeof x==='number')return isFinite(x)?x:0;if(typeof x==='string'){let t=x.replace(/[^\d.,-]/g,'');if(t.indexOf(',')>-1&&t.indexOf('.')>-1)t=t.replace(/\./g,'').replace(',','.');else if((t.match(/\./g)||[]).length>1)t=t.replace(/\./g,'');else if(t.indexOf(',')>-1)t=t.replace(',','.');const n=parseFloat(t);return isNaN(n)?0:n;}return 0;}
+function serialYM(n){const d=new Date(Date.UTC(1899,11,30)+Math.round(n)*86400000);return d.getUTCFullYear()*100+(d.getUTCMonth()+1);}
+function serialDate(n){return new Date(Date.UTC(1899,11,30)+Math.round(n)*86400000);}
+function dateKey(x){if(typeof x==='number'){if(x>=190000&&x<=210012)return x;if(x>1&&x<80000)return serialYM(x);}
+  if(typeof x==='string'){let m=x.match(/(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/);if(m)return +m[1]*100+ +m[2];
+    m=x.match(/(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})/);if(m){let y=+m[3];if(y<100)y+=2000;return y*100+ +m[2];}}return null;}
+function anyToDate(x){if(x instanceof Date)return x;if(typeof x==='number'&&x>1&&x<80000)return serialDate(x);
+  if(typeof x==='string'){const m=x.match(/(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})/);if(m){let y=+m[3];if(y<100)y+=2000;return new Date(y,+m[2]-1,+m[1]);}const d=new Date(x);if(!isNaN(d))return d;}return null;}
+const PER={'Mensual':1,'Bimestral':2,'Trimestral':3,'Semestral':6,'Anual':12};
+const CAT_OF={};
+(function(){const L=[['Vivienda',['Arriendo o cuota hipoteca','Administración','Energía','Acueducto','Gas','Internet','Telefonía celular','Empleada del servicio','Mantenimiento del hogar']],['Alimentación',['Mercado','Comidas fuera','Domicilios','Café y antojos']],['Transporte',['Gasolina','Taxi y apps de movilidad','Transporte público','Mantenimiento vehículo','Peajes y parqueaderos','SOAT e impuesto vehicular']],['Salud',['Medicina prepagada o EPS','Plan dental','Medicamentos','Consultas y exámenes','Gimnasio']],['Educación',['Pensión escolar','Ruta escolar','Alimentación escolar','Actividades extracurriculares','Cursos y formación']],['Suscripciones',['Streaming y entretenimiento digital','Herramientas de IA','Prensa y noticias','Software y almacenamiento','Otras suscripciones']],['Seguros',['Seguro de vida','Seguro de vehículo','Seguro del hogar','Otros seguros']],['Créditos y deudas',['Cuota crédito hipotecario','Cuota crédito vehículo','Pago tarjeta de crédito','Crédito de libre inversión','Otros créditos']],['Personal y hogar',['Ropa y calzado','Cuidado personal','Aseo y productos del hogar','Regalos','Mascotas']],['Ocio y viajes',['Restaurantes y salidas','Viajes','Entretenimiento y eventos']],['Ahorro e inversión',['Ahorro programado','Fondo de emergencia','Inversiones','Aportes voluntarios a pensión']],['Otros',['Impuestos','Donaciones','Imprevistos','Gastos varios']]];L.forEach(([c,ss])=>ss.forEach(s=>CAT_OF[s]=c));})();
+
+// ================= PARSER =================
+function sheetOf(wb,name){for(const n of wb.SheetNames)if(norm(n)===norm(name))return wb.Sheets[n];return null;}
+function parse(wb){
+  const keys=[202607,202608,202609,202610,202611,202612,202701,202702,202703,202704,202705,202706];
+  const labels=['jul-26','ago-26','sep-26','oct-26','nov-26','dic-26','ene-27','feb-27','mar-27','abr-27','may-27','jun-27'];
+  const par=sheetOf(wb,'Parámetros')||sheetOf(wb,'Parametros')||[];let trm=3270;
+  for(const r of par){if(r&&/TRM/i.test(String(r[1]||''))){const v=num(r[2]);if(v>0){trm=v;break;}}}
+  const catRows=sheetOf(wb,'Categorías')||sheetOf(wb,'Categorias')||[];const map={};
+  for(let i=4;i<catRows.length;i++){const r=catRows[i];if(r&&r[2])map[r[2]]=r[1];}
+  const suR=sheetOf(wb,'Suscripciones')||[];const subs=[];
+  for(let i=5;i<suR.length;i++){const r=suR[i];if(!r||!r[1])continue;if(/total|ajuste|servicio/i.test(String(r[1])))continue;
+    if(r[3]!=='COP'&&r[3]!=='USD')continue;const tar=num(r[4]);if(!tar)continue;
+    const mon=r[3],cop=mon==='USD'?tar*trm:tar,per=PER[r[5]]||1;const pd=anyToDate(r[10]);
+    subs.push({s:r[1],sub:r[2],mon,cop,mes:cop/per,per:r[5],prox:pd?pd.toISOString():null,med:r[12]});}
+  const prR=sheetOf(wb,'Presupuesto')||[];const bud={};
+  for(let i=6;i<prR.length;i++){const r=prR[i];if(!r||!r[2])continue;if(/^total|ingreso neto|excedente/i.test(String(r[1]||'')))continue;
+    const arr=[];for(let j=0;j<12;j++)arr.push(num(r[3+j]));bud[r[2]]=arr;}
+  const SUBCATS=['Streaming y entretenimiento digital','Herramientas de IA','Prensa y noticias','Software y almacenamiento','Otras suscripciones'];
+  for(const sc of SUBCATS){const base=subs.filter(s=>s.sub===sc).reduce((a,b)=>a+b.mes,0);if(base<=0)continue;
+    if((bud[sc]||[]).reduce((a,b)=>a+b,0)>0)continue;const arr=[];
+    for(let j=0;j<12;j++){let v=base;if(sc==='Herramientas de IA'&&keys[j]>=202609)v+=9900;arr.push(v);}bud[sc]=arr;}
+  const inR=sheetOf(wb,'Ingresos')||[];const neto=new Array(12).fill(0);let hasNeto=false;
+  const r25=inR[24];if(r25)for(let j=0;j<12;j++){const v=num(r25[3+j]);neto[j]=v;if(v)hasNeto=true;}
+  if(!hasNeto){const sr=(a,b)=>{const o=new Array(12).fill(0);for(let i=a;i<=b;i++){const r=inR[i-1];if(!r)continue;for(let j=0;j<12;j++)o[j]+=num(r[3+j]);}return o;};
+    const bru=sr(9,13),ded=sr(17,21);for(let j=0;j<12;j++)neto[j]=bru[j]-ded[j];}
+  const mvR=sheetOf(wb,'Movimientos')||[];const movs=[];
+  for(let i=5;i<mvR.length;i++){const r=mvR[i];if(!r)continue;const mon=r[6]||'COP';const orig=num(r[7]);const cached=num(r[8]);
+    let v=cached>0?cached:(mon==='USD'?orig*trm:orig);if(!v)continue;
+    let k=num(r[9]);if(!(k>=190000&&k<=210012))k=dateKey(r[1]);if(!k)continue;
+    const sub=r[3];movs.push({con:r[2],sub,cat:map[sub]||CAT_OF[sub]||r[4]||'Otros',med:r[5],v:Math.round(v),k});}
+  const amR=sheetOf(wb,'Ahorro y Metas')||sheetOf(wb,'Ahorro y metas')||[];const metas=[];
+  for(let i=5;i<amR.length;i++){const r=amR[i];if(!r||!r[1]||/^total/i.test(String(r[1])))continue;const obj=num(r[2]);if(!obj)continue;
+    metas.push({n:r[1],obj,hoy:num(r[3]),ap:num(r[4])});}
+  return{trm,keys,labels,movs,bud,neto,subs,metas};
+}
+
+// ================= GRÁFICOS SVG =================
+const P=(cx,cy,r,a)=>{const rad=(a-90)*Math.PI/180;return[cx+r*Math.cos(rad),cy+r*Math.sin(rad)];};
+function svgArc(cx,cy,r,a0,a1,w,col,cap){const[x0,y0]=P(cx,cy,r,a0),[x1,y1]=P(cx,cy,r,a1);const large=(a1-a0)>180?1:0;
+  return `<path d="M${x0.toFixed(2)} ${y0.toFixed(2)} A${r} ${r} 0 ${large} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}" fill="none" stroke="${col}" stroke-width="${w}" stroke-linecap="${cap||'round'}"/>`;}
+function gaugeSVG(p,col){p=Math.max(0,Math.min(1,p));const s=118,c=s/2,r=48,w=11;
+  let g=`<svg viewBox="0 0 ${s} ${s}" width="100%" height="118">`;
+  g+=svgArc(c,c,r,135,405,w,'rgba(45,225,252,.12)');
+  if(p>0)g+=svgArc(c,c,r,135,135+270*p,w,col);
+  g+=`<circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="rgba(45,225,252,.05)" stroke-width="1"/></svg>`;return g;}
+function donutSVG(items,size){const tot=items.reduce((a,b)=>a+b.v,0)||1;const c=size/2,r=size*0.38,w=size*0.20;
+  let g=`<svg viewBox="0 0 ${size} ${size}" width="100%" height="100%">`,acc=0;
+  g+=`<circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="rgba(45,225,252,.07)" stroke-width="${w}"/>`;
+  items.forEach(it=>{const frac=it.v/tot;if(frac<=0)return;const a0=acc*360,a1=(acc+frac)*360;acc+=frac;
+    const seg=a1-a0>=359.9?svgArc(c,c,r,0,359.9,w,it.color,'butt'):svgArc(c,c,r,a0,a1,w,it.color,'butt');
+    g+=seg.replace('/>',`><title>${esc(it.label)}: ${fmt(it.v)}</title></path>`);});
+  g+=`</svg>`;return g;}
+function radarSVG(labels,series,size){const c=size/2,R=size*0.36,N=labels.length;
+  const max=Math.max(1,...series.flatMap(s=>s.data));let g=`<svg viewBox="0 0 ${size} ${size}" width="100%" height="100%" font-family="ui-monospace,monospace">`;
+  for(let ring=1;ring<=4;ring++){const rr=R*ring/4;let pts='';for(let i=0;i<N;i++){const[x,y]=P(c,c,rr,i/N*360);pts+=`${x.toFixed(1)},${y.toFixed(1)} `;}
+    g+=`<polygon points="${pts}" fill="none" stroke="rgba(45,225,252,.10)" stroke-width="1"/>`;}
+  for(let i=0;i<N;i++){const[x,y]=P(c,c,R,i/N*360);g+=`<line x1="${c}" y1="${c}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="rgba(45,225,252,.14)" stroke-width="1"/>`;
+    const[lx,ly]=P(c,c,R+14,i/N*360);g+=`<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" fill="#9fbce8" font-size="8.5" text-anchor="middle" dominant-baseline="middle">${esc(labels[i])}</text>`;}
+  series.forEach(s=>{let pts='';for(let i=0;i<N;i++){const v=Math.max(0,s.data[i])/max;const[x,y]=P(c,c,R*v,i/N*360);pts+=`${x.toFixed(1)},${y.toFixed(1)} `;}
+    g+=`<polygon points="${pts}" fill="${s.color}22" stroke="${s.color}" stroke-width="2"/>`;
+    for(let i=0;i<N;i++){const v=Math.max(0,s.data[i])/max;const[x,y]=P(c,c,R*v,i/N*360);g+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2" fill="${s.color}"/>`;}});
+  g+=`</svg>`;return g;}
+function vbarsSVG(vals,labels,w,h){const n=vals.length,pad=22,bw=(w-8)/n*0.62,gap=(w-8)/n;
+  const mx=Math.max(1,...vals.map(Math.abs));const zero=h-pad-(h-pad*2)*0.5;const scale=(h-pad*2)/2/mx;
+  let g=`<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" font-family="ui-monospace,monospace">`;
+  g+=`<line x1="0" y1="${zero}" x2="${w}" y2="${zero}" stroke="rgba(45,225,252,.14)"/>`;
+  vals.forEach((v,i)=>{const x=4+gap*i+(gap-bw)/2;const hh=Math.abs(v)*scale;const y=v>=0?zero-hh:zero;
+    const col=v>=0?'#3ce6c4':'#ff477e';g+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(1,hh).toFixed(1)}" rx="2" fill="${col}"><title>${esc(labels[i])}: ${fmt(v)}</title></rect>`;});
+  vals.forEach((v,i)=>{const x=4+gap*i+gap/2;g+=`<text x="${x.toFixed(1)}" y="${h-6}" fill="#5c7aa8" font-size="7.5" text-anchor="middle">${esc(labels[i].slice(0,3))}</text>`;});
+  g+=`</svg>`;return g;}
+function sparkSVG(vals,w,h,col){const mn=Math.min(...vals,0),mx=Math.max(...vals,0.01),rng=mx-mn||1;
+  let d='';vals.forEach((v,i)=>{const x=i/(vals.length-1)*w;const y=h-4-(v-mn)/rng*(h-8);d+=(i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1)+' ';});
+  const area=d+`L${w} ${h} L0 ${h} Z`;
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}"><path d="${area}" fill="${col}22"/><path d="${d}" fill="none" stroke="${col}" stroke-width="2"/></svg>`;}
+function legendHTML(items){return `<div style="display:flex;flex-wrap:wrap;gap:5px 12px;justify-content:center;margin-top:10px">`+
+  items.map(it=>`<span style="display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:#a8c2ea"><span style="width:9px;height:9px;border-radius:50%;background:${it.color};display:inline-block"></span>${esc(it.label)}</span>`).join('')+`</div>`;}
+
+// ================= AGREGADOS =================
+function agg(D,selKey){
+  const isAll=selKey==='all';const inSel=m=>isAll?true:m.k===selKey;const mi=k=>D.keys.indexOf(k);
+  const real12=D.keys.map(k=>D.movs.filter(m=>m.k===k).reduce((a,b)=>a+b.v,0));
+  const bud12=D.keys.map((k,j)=>Object.values(D.bud).reduce((a,arr)=>a+(arr[j]||0),0));
+  const exc12=D.keys.map((k,j)=>D.neto[j]-real12[j]);
+  const rate12=D.keys.map((k,j)=>D.neto[j]?exc12[j]/D.neto[j]:0);
+  const byCat={};CATS.forEach(c=>byCat[c]=0);D.movs.filter(inSel).forEach(m=>byCat[m.cat]=(byCat[m.cat]||0)+m.v);
+  const subCat={};D.movs.forEach(m=>subCat[m.sub]=m.cat);
+  const budCat={};CATS.forEach(c=>budCat[c]=0);
+  for(const[sub,arr]of Object.entries(D.bud)){const c=subCat[sub]||CAT_OF[sub]||'Otros';if(isAll)budCat[c]+=arr.reduce((a,b)=>a+b,0);else budCat[c]+=(arr[mi(selKey)]||0);}
+  const byMed={};D.movs.filter(inSel).forEach(m=>{if(m.med)byMed[m.med]=(byMed[m.med]||0)+m.v;});
+  const top=[...D.movs.filter(inSel)].sort((a,b)=>b.v-a.v).slice(0,10);
+  const realT=isAll?real12.reduce((a,b)=>a+b,0):real12[mi(selKey)];
+  const budT=isAll?bud12.reduce((a,b)=>a+b,0):bud12[mi(selKey)];
+  const netoT=isAll?D.neto.reduce((a,b)=>a+b,0):D.neto[mi(selKey)];
+  const excT=netoT-realT,rateT=netoT?excT/netoT:0;
+  const subMes=D.subs.reduce((a,b)=>a+b.mes,0),subIA=D.subs.filter(s=>s.sub==='Herramientas de IA').reduce((a,b)=>a+b.mes,0);
+  const metaObj=D.metas.reduce((a,b)=>a+b.obj,0),metaHoy=D.metas.reduce((a,b)=>a+b.hoy,0);
+  return{real12,bud12,exc12,rate12,byCat,budCat,byMed,top,realT,budT,netoT,excT,rateT,isAll,subMes,subIA,
+    iaShare:subMes?subIA/subMes:0,metaShare:metaObj?metaHoy/metaObj:0};
+}
+
+// ================= RENDER =================
+let DATA=DEMO,SEL='all';
+function buildMonthSel(){const s=document.getElementById('monthSel');
+  s.innerHTML='<option value="all">◇ Todo el ciclo</option>'+DATA.labels.map((l,i)=>`<option value="${DATA.keys[i]}">${l.toUpperCase()}</option>`).join('');s.value=SEL;}
+const semClass=p=>p>=1?'b':p>=0.9?'w':'g';
+const semColor=p=>p>=1?'#ff477e':p>=0.9?'#f5c518':'#3ce6c4';
+
+function render(){
+  const A=agg(DATA,SEL==='all'?'all':+SEL);
+  const selLabel=SEL==='all'?'ciclo completo':DATA.labels[DATA.keys.indexOf(+SEL)].toUpperCase();
+  const gauges=[['Ejecución','real vs presup.',A.budT?A.realT/A.budT:0,semColor(A.budT?A.realT/A.budT:0),A.budT?pct(A.realT/A.budT):'—'],
+    ['Ahorro','del ingreso',Math.max(0,A.rateT),'#2de1fc',pct(Math.max(0,A.rateT))],
+    ['IA / suscrip.','del gasto digital',A.iaShare,'#f5c518',pct(A.iaShare)],
+    ['Metas','ahorrado',A.metaShare,'#8b5cff',pct(A.metaShare)]];
+
+  const cats=CATS.filter(c=>A.byCat[c]>0).map(c=>({label:c,v:A.byCat[c],color:catColor(c)}));
+  const meds=Object.entries(A.byMed).sort((a,b)=>b[1]-a[1]).map((m,i)=>({label:m[0].replace(/\*/g,'·'),v:m[1],color:CC[i%CC.length]}));
+  const su=[...DATA.subs].sort((a,b)=>b.mes-a.mes).map((s,i)=>({label:s.s,v:s.mes,color:CC[i%CC.length]}));
+  const rowsB=CATS.map(c=>({c,b:A.budCat[c]||0,r:A.byCat[c]||0})).filter(x=>x.b>0||x.r>0).sort((a,b)=>b.r-a.r);
+  const maxB=Math.max(...rowsB.map(x=>Math.max(x.b,x.r)),1);
+  const today=new Date();
+  const ss=[...DATA.subs].filter(s=>s.prox).sort((a,b)=>new Date(a.prox)-new Date(b.prox));
+
+  document.getElementById('app').innerHTML=`
+  <div class="grid" style="margin-bottom:14px">
+    ${gauges.map(([l,s,p,col,txt])=>`<div class="panel span3"><div class="gwrap">${gaugeSVG(p,col)}
+      <div class="gcenter"><div class="gval" style="color:${col};text-shadow:0 0 16px ${col}88">${txt}</div></div></div>
+      <div class="glab">${l}</div><div class="gsub">${s}</div></div>`).join('')}
+  </div>
+  <div class="panel span12" style="margin-bottom:14px"><div class="eyebrow">Resumen · ${selLabel}</div>
+    <div class="stats">
+      <div class="stat"><div class="l"><span class="dot" style="color:var(--cyan)"></span>Ingreso neto</div><div class="v" style="color:var(--cyan)">${fmt(A.netoT)}</div></div>
+      <div class="stat"><div class="l"><span class="dot" style="color:var(--mag)"></span>Gasto real</div><div class="v" style="color:var(--mag)">${fmt(A.realT)}</div></div>
+      <div class="stat"><div class="l"><span class="dot" style="color:var(--good)"></span>Excedente</div><div class="v" style="color:${A.excT>=0?'var(--good)':'var(--bad)'}">${fmt(A.excT)}</div></div>
+      <div class="stat"><div class="l"><span class="dot" style="color:var(--gold)"></span>Presupuesto</div><div class="v" style="color:var(--gold)">${fmt(A.budT)}</div></div>
+    </div></div>
+  <div class="grid">
+    <div class="panel span7"><div class="eyebrow">Radar anual</div><h3>Ingreso · Presupuesto · Gasto real</h3>
+      <div class="hint">Cada eje es un mes, cada polígono una serie</div>
+      <div style="height:320px">${radarSVG(DATA.labels.map(l=>l.toUpperCase()),[{color:'#2de1fc',data:DATA.neto},{color:'#f5c518',data:A.bud12},{color:'#ff477e',data:A.real12}],320)}</div>
+      ${legendHTML([{label:'Ingreso',color:'#2de1fc'},{label:'Presupuesto',color:'#f5c518'},{label:'Gasto real',color:'#ff477e'}])}</div>
+    <div class="panel span5"><div class="eyebrow">Distribución</div><h3>¿En qué se va la plata?</h3>
+      <div class="hint">Gasto real por categoría · ${selLabel}</div>
+      <div style="height:250px">${cats.length?donutSVG(cats,250):'<div class=empty>Sin gastos</div>'}</div>
+      ${cats.length?legendHTML(cats.slice(0,8)):''}</div>
+
+    <div class="panel span7"><div class="eyebrow">Control</div><h3>Presupuesto vs. real por categoría</h3>
+      <div class="hint">${selLabel} · ámbar desde 90%, rojo al pasar el 100%</div>
+      ${rowsB.map(x=>{const p=x.b?x.r/x.b:0,col=semColor(p);return `<div class="budrow"><div class="top"><span>${esc(x.c)}</span>
+        <span class="amt" style="color:${col}">${fmt(x.r)} <span style="color:var(--muted)">/ ${fmtK(x.b)}</span> <span class="tag ${semClass(p)}">${x.b?pct(p):'—'}</span></span></div>
+        <div class="bar-mini"><i style="width:${Math.min(100,x.r/maxB*100)}%;background:${col};box-shadow:0 0 10px ${col}"></i>
+        <span style="position:absolute;left:${Math.min(100,x.b/maxB*100)}%;top:-2px;width:2px;height:12px;background:#eaf6ff"></span></div></div>`;}).join('')||'<div class=empty>Sin datos</div>'}</div>
+    <div class="panel span5"><div class="eyebrow">Flujo</div><h3>Cuánto queda libre cada mes</h3>
+      <div class="hint">Excedente mensual (ingreso − gasto real)</div>
+      ${vbarsSVG(A.exc12,DATA.labels,300,180)}
+      <div class="hint" style="margin:8px 0 2px">Tasa de ahorro</div>${sparkSVG(A.rate12,300,60,'#8b5cff')}</div>
+
+    <div class="panel span4"><div class="eyebrow">Canales</div><h3>Medios de pago</h3>
+      <div class="hint">Qué tarjeta carga más · ${selLabel}</div>
+      <div style="height:210px">${meds.length?donutSVG(meds,210):'<div class=empty>Sin datos</div>'}</div>
+      ${meds.length?legendHTML(meds):''}</div>
+    <div class="panel span8"><div class="eyebrow">Ranking</div><h3>Los gastos más grandes</h3>
+      <div class="hint">Top 10 movimientos · ${selLabel}</div>
+      ${A.top.length?`<table class="tbl"><thead><tr><th>Concepto</th><th>Categoría</th><th>Medio</th><th style="text-align:right">Valor</th></tr></thead><tbody>${A.top.map(m=>`<tr><td style="font-weight:600">${esc(m.con||'—')}</td><td><span class="tag" style="background:${catColor(m.cat)}22;color:${catColor(m.cat)}">${esc(m.cat)}</span></td><td style="color:var(--muted);font-size:12px">${esc((m.med||'').replace(/\*/g,'·'))}</td><td class="n">${fmt(m.v)}</td></tr>`).join('')}</tbody></table>`:'<div class=empty>Sin movimientos</div>'}</div>
+
+    <div class="panel span7"><div class="eyebrow">Recurrentes</div><h3>Renovación de suscripciones</h3>
+      <div class="hint">Ordenadas por próximo cobro</div>
+      ${ss.length?ss.map(s=>{const d=Math.round((new Date(s.prox)-today)/864e5);
+        const col=d<0?'#7fa0cc':d<=7?'#ff477e':d<=21?'#f5c518':'#3ce6c4';const bg=d<0?'rgba(127,160,204,.14)':d<=7?'rgba(255,71,126,.16)':d<=21?'rgba(245,197,24,.16)':'rgba(60,230,196,.14)';
+        const fecha=new Date(s.prox).toLocaleDateString('es-CO',{day:'numeric',month:'short'});const dtxt=d<0?'vencida':d===0?'hoy':d===1?'mañana':d+' días';
+        return `<div class="subrow"><div class="ico" style="background:${catColor(s.sub)}">${esc((s.s||'?')[0])}</div>
+        <div><div class="nm">${esc(s.s)}</div><div class="mt">${esc(s.per)} · ${esc((s.med||'').replace(/\*/g,'·'))}</div></div>
+        <div class="amt">${fmt(s.mes)}<span class="mt" style="display:block;font-weight:500">/mes</span></div>
+        <div class="days" style="color:${col};background:${bg}">${fecha} · ${dtxt}</div></div>`;}).join(''):'<div class=empty>Sin suscripciones</div>'}</div>
+    <div class="panel span5"><div class="eyebrow">Peso</div><h3>Cada suscripción</h3>
+      <div class="hint">Equivalente mensual</div>
+      <div style="height:230px">${su.length?donutSVG(su,230):'<div class=empty>—</div>'}</div>${su.length?legendHTML(su):''}</div>
+
+    <div class="panel span12"><div class="eyebrow">Objetivos</div><h3>Metas de ahorro</h3>
+      <div class="hint">Avance hacia cada objetivo</div>
+      ${DATA.metas.length?DATA.metas.map((m,i)=>{const p=m.obj?m.hoy/m.obj:0,falta=m.obj-m.hoy,col=CC[i%CC.length],meses=m.ap?Math.ceil(falta/m.ap):null;
+        return `<div class="metarow"><div class="top"><span>${esc(m.n)}</span><span class="amt">${fmt(m.hoy)} <span style="color:var(--muted)">de ${fmt(m.obj)}</span> · <span style="color:${col}">${pct(p)}</span></span></div>
+        <div class="bar-mini" style="height:11px"><i style="width:${Math.min(100,p*100)}%;background:${col};box-shadow:0 0 12px ${col}"></i></div>
+        <div class="mt" style="font-size:11px;color:var(--muted);margin-top:4px">Falta ${fmt(falta)}${meses?` · ~${meses} meses al ritmo de ${fmt(m.ap)}/mes`:''}</div></div>`;}).join(''):'<div class=empty>Aún no has definido metas</div>'}</div>
+  </div>`;
+}
+
+document.getElementById('monthSel').addEventListener('change',e=>{SEL=e.target.value;render();});
+
+// ============ PERSISTENCIA LOCAL (IndexedDB · solo en este dispositivo) ============
+// Guarda los bytes crudos del último .xlsx cargado en el navegador de ESTE dispositivo.
+// Nunca viaja a la red: IndexedDB vive en el equipo, aislado por origen y por navegador.
+const IDB_NAME='presupuesto_familiar',IDB_STORE='files',IDB_KEY='ultimo';
+function idbOpen(){return new Promise((res,rej)=>{const q=indexedDB.open(IDB_NAME,1);
+  q.onupgradeneeded=()=>{if(!q.result.objectStoreNames.contains(IDB_STORE))q.result.createObjectStore(IDB_STORE);};
+  q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);});}
+async function idbSave(rec){try{const db=await idbOpen();await new Promise((res,rej)=>{const t=db.transaction(IDB_STORE,'readwrite');t.objectStore(IDB_STORE).put(rec,IDB_KEY);t.oncomplete=res;t.onerror=()=>rej(t.error);});db.close();}catch(e){/* navegación privada / sin soporte: seguimos sin persistir */}}
+async function idbLoad(){try{const db=await idbOpen();const rec=await new Promise((res,rej)=>{const t=db.transaction(IDB_STORE,'readonly');const g=t.objectStore(IDB_STORE).get(IDB_KEY);g.onsuccess=()=>res(g.result);g.onerror=()=>rej(g.error);});db.close();return rec;}catch(e){return null;}}
+async function idbClear(){try{const db=await idbOpen();await new Promise((res,rej)=>{const t=db.transaction(IDB_STORE,'readwrite');t.objectStore(IDB_STORE).delete(IDB_KEY);t.oncomplete=res;t.onerror=()=>rej(t.error);});db.close();}catch(e){}}
+const fmtDate=ts=>new Date(ts||Date.now()).toLocaleDateString('es-CO',{day:'numeric',month:'short',year:'numeric'});
+
+// Aplica un modelo ya parseado y actualiza la interfaz (banner, estado, botón Borrar).
+function applyData(D,meta){
+  DATA=D;SEL='all';
+  document.getElementById('banner').classList.add('hide');
+  const st=document.getElementById('dataStatus');
+  if(meta){st.innerHTML='<span style="color:var(--good)">●</span> '+esc(meta.name)+' · actualizado el '+esc(meta.date)+' · guardado solo en este dispositivo';st.style.display='';}
+  document.getElementById('clearBtn').style.display='';
+  buildMonthSel();render();
+}
+
+async function load(f){try{
+  const buf=await f.arrayBuffer();
+  const wb=await readXlsx(buf);
+  const D=parse(wb);
+  applyData(D,{name:f.name,date:fmtDate(Date.now())});
+  idbSave({bytes:buf,name:f.name,ts:Date.now()});
+}catch(err){alert('No pude leer el archivo:\n'+err.message);}}
+document.getElementById('file').addEventListener('change',e=>{if(e.target.files[0])load(e.target.files[0]);e.target.value='';});
+
+document.getElementById('clearBtn').addEventListener('click',async()=>{
+  if(!confirm('¿Borrar los datos guardados en este dispositivo?\n\nVolverás a la vista de demostración. Tu archivo Excel original no se toca.'))return;
+  await idbClear();
+  DATA=DEMO;SEL='all';
+  document.getElementById('banner').classList.remove('hide');
+  document.getElementById('dataStatus').style.display='none';
+  document.getElementById('clearBtn').style.display='none';
+  buildMonthSel();render();
+});
+
+const drop=document.getElementById('drop');
+['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('drag');}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();if(ev==='dragleave'&&e.target!==drop)return;drop.classList.remove('drag');}));
+drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('drag');if(e.dataTransfer.files[0])load(e.dataTransfer.files[0]);});
+
+// Arranque: dibuja la demo al instante y luego restaura tus datos guardados si existen.
+async function boot(){
+  try{buildMonthSel();render();}
+  catch(e){document.getElementById('app').innerHTML='<div class="panel span12" style="text-align:center;padding:30px"><h3>Ups, algo falló al dibujar</h3><div class="hint">'+esc(e.message)+'</div></div>';return;}
+  try{
+    const rec=await idbLoad();
+    if(rec&&rec.bytes){
+      const wb=await readXlsx(rec.bytes);
+      const D=parse(wb);
+      applyData(D,{name:rec.name||'tu archivo',date:fmtDate(rec.ts)});
+    }
+  }catch(e){/* guardado dañado o navegador sin soporte: seguimos con la demo */}
+}
+boot();
+</script>
+</body>
+</html>
