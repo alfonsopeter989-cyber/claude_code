@@ -334,15 +334,24 @@ function donutSVG(items,size){
   g+=`<text x="${cx}" y="${(cy-size*0.015).toFixed(1)}" fill="#eaf6ff" font-size="${(size*0.072).toFixed(0)}" font-weight="800" text-anchor="middle" dominant-baseline="central">${fmtK(realTot)}</text>`;
   g+=`<text x="${cx}" y="${(cy+size*0.052).toFixed(1)}" fill="#6f89b3" font-size="${(size*0.036).toFixed(0)}" letter-spacing="1.5" text-anchor="middle" dominant-baseline="central">TOTAL</text>`;
   g+=`</svg>`;return g;}
-function radarSVG(labels,series,size){const c=size/2,R=size*0.36,N=labels.length;
-  const max=Math.max(1,...series.flatMap(s=>s.data));let g=`<svg viewBox="0 0 ${size} ${size}" width="100%" height="100%" font-family="ui-monospace,monospace">`;
-  for(let ring=1;ring<=4;ring++){const rr=R*ring/4;let pts='';for(let i=0;i<N;i++){const[x,y]=P(c,c,rr,i/N*360);pts+=`${x.toFixed(1)},${y.toFixed(1)} `;}
-    g+=`<polygon points="${pts}" fill="none" stroke="rgba(45,225,252,.10)" stroke-width="1"/>`;}
-  for(let i=0;i<N;i++){const[x,y]=P(c,c,R,i/N*360);g+=`<line x1="${c}" y1="${c}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="rgba(45,225,252,.14)" stroke-width="1"/>`;
-    const[lx,ly]=P(c,c,R+14,i/N*360);g+=`<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" fill="#9fbce8" font-size="8.5" text-anchor="middle" dominant-baseline="middle">${esc(labels[i])}</text>`;}
-  series.forEach(s=>{let pts='';for(let i=0;i<N;i++){const v=Math.max(0,s.data[i])/max;const[x,y]=P(c,c,R*v,i/N*360);pts+=`${x.toFixed(1)},${y.toFixed(1)} `;}
-    g+=`<polygon points="${pts}" fill="${s.color}22" stroke="${s.color}" stroke-width="2"/>`;
-    for(let i=0;i<N;i++){const v=Math.max(0,s.data[i])/max;const[x,y]=P(c,c,R*v,i/N*360);g+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2" fill="${s.color}"/>`;}});
+// Radar estilo infografía: anillos circulares, radios con etiqueta afuera, rellenos con glow.
+function radarSVG(labels,series,size){const c=size/2,R=size*0.30,N=labels.length,RINGS=6;
+  const max=Math.max(1,...series.flatMap(s=>s.data));
+  let g=`<svg viewBox="0 0 ${size} ${size}" width="100%" height="100%" font-family="ui-monospace,monospace">`;
+  g+=`<defs><filter id="radarGlow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`+
+     `<radialGradient id="radarBg" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(176,38,180,.16)"/><stop offset="72%" stop-color="rgba(176,38,180,0)"/></radialGradient></defs>`;
+  g+=`<circle cx="${c}" cy="${c}" r="${R.toFixed(1)}" fill="url(#radarBg)"/>`;
+  for(let ring=1;ring<=RINGS;ring++){const rr=R*ring/RINGS;
+    g+=`<circle cx="${c}" cy="${c}" r="${rr.toFixed(1)}" fill="none" stroke="rgba(130,160,220,${ring===RINGS?.3:.12})" stroke-width="1"/>`;}
+  for(let i=0;i<N;i++){const ang=i/N*360,[x,y]=P(c,c,R,ang);
+    g+=`<line x1="${c}" y1="${c}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="rgba(130,160,220,.16)" stroke-width="1"/>`;
+    const[tx,ty]=P(c,c,R+5,ang);g+=`<circle cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="1.5" fill="rgba(160,190,245,.7)"/>`;
+    const cs=Math.cos((ang-90)*Math.PI/180),anchor=Math.abs(cs)<.34?'middle':(cs>0?'start':'end'),[lx,ly]=P(c,c,R+13,ang);
+    g+=`<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" fill="#a9c4ea" font-size="7.5" font-weight="700" text-anchor="${anchor}" dominant-baseline="middle">${esc(labels[i])}</text>`;}
+  const ordered=series.map(s=>({s,area:s.data.reduce((a,b)=>a+Math.max(0,b),0)})).sort((a,b)=>b.area-a.area).map(o=>o.s);
+  ordered.forEach(s=>{let pts='';const V=[];for(let i=0;i<N;i++){const v=Math.max(0,s.data[i])/max,[x,y]=P(c,c,R*v,i/N*360);pts+=`${x.toFixed(1)},${y.toFixed(1)} `;V.push([x,y]);}
+    g+=`<polygon points="${pts}" fill="${s.color}55" stroke="${s.color}" stroke-width="2.4" stroke-linejoin="round" filter="url(#radarGlow)"/>`;
+    V.forEach(p=>g+=`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.6" fill="${s.color}" stroke="#0a1220" stroke-width="1"/>`);});
   g+=`</svg>`;return g;}
 function vbarsSVG(vals,labels,w,h){const n=vals.length,pad=22,bw=(w-8)/n*0.62,gap=(w-8)/n;
   const mx=Math.max(1,...vals.map(Math.abs));const zero=h-pad-(h-pad*2)*0.5;const scale=(h-pad*2)/2/mx;
@@ -504,7 +513,7 @@ function render(){
 document.getElementById('monthSel').addEventListener('change',e=>{SEL=e.target.value;render();});
 
 // ============ RADAR INTERACTIVO (meses + series · independiente del selector de arriba) ============
-const RSERIES=[{k:'neto',label:'Ingreso',color:'#2de1fc'},{k:'bud',label:'Presupuesto',color:'#f5c518'},{k:'real',label:'Gasto real',color:'#ff477e'}];
+const RSERIES=[{k:'neto',label:'Ingreso',color:'#ff2e63'},{k:'bud',label:'Presupuesto',color:'#c026d3'},{k:'real',label:'Gasto real',color:'#7c5cff'}];
 let RADAR_DATA=null,RADAR_M=null,RADAR_S=new Set(['neto','bud','real']);
 function radarIdx(){return RADAR_M?[...RADAR_M].filter(i=>i>=0&&RADAR_DATA&&i<RADAR_DATA.labels.length).sort((a,b)=>a-b):[];}
 function loadRadarPrefs(){try{
@@ -525,7 +534,7 @@ function renderRadar(){
   if(idx.length<3){el.innerHTML='<div class="empty">Seleccioná al menos 3 meses</div>';return;}
   const series=RSERIES.filter(s=>RADAR_S.has(s.k)).map(s=>({color:s.color,data:idx.map(i=>RADAR_DATA.series[s.k][i])}));
   if(!series.length){el.innerHTML='<div class="empty">Seleccioná al menos una serie</div>';return;}
-  el.innerHTML=radarSVG(idx.map(i=>String(RADAR_DATA.labels[i]).toUpperCase()),series,320);
+  el.innerHTML=radarSVG(idx.map((i,pos)=>String(pos+1).padStart(2,'0')+' · '+String(RADAR_DATA.labels[i]).toUpperCase()),series,320);
 }
 document.getElementById('app').addEventListener('click',e=>{
   const m=e.target.closest('[data-radarm]'),s=e.target.closest('[data-radars]'),a=e.target.closest('[data-radaract]');
