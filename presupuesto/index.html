@@ -307,11 +307,13 @@ function gaugeSVG(p,col){p=Math.max(0,Math.min(1,p));const s=118,c=s/2,r=48,w=11
   g+=svgArc(c,c,r,135,405,w,'rgba(45,225,252,.12)');
   if(p>0)g+=svgArc(c,c,r,135,135+270*p,w,col);
   g+=`<circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="rgba(45,225,252,.05)" stroke-width="1"/></svg>`;return g;}
-// Anillo 3D isométrico: extrusión por capas apiladas (tilt vertical) + íconos y % por gajo.
+// Anillo 3D glossy: caras superiores con degradado, pared extruida por capas, brillo de borde y sombra de contacto.
+let __gid=0;
 function donutSVG(items,size){
+  const uid='dn'+(++__gid);
   const realTot=items.reduce((a,b)=>a+b.v,0),tot=realTot||1;
-  const cx=size/2,cy=size*0.44,rxO=size*0.40,rxI=size*0.225,tilt=0.56,ryO=rxO*tilt,ryI=rxI*tilt;
-  const depth=size*0.12,LAYERS=14,step=depth/LAYERS,gap=1.4;
+  const cx=size/2,cy=size*0.455,rxO=size*0.40,rxI=size*0.225,tilt=0.55,ryO=rxO*tilt,ryI=rxI*tilt;
+  const depth=size*0.14,LAYERS=Math.max(16,Math.round(depth/1.9)),step=depth/LAYERS,gap=1.4;
   const PE=(rx,ry,a,dy)=>{const rad=(a-90)*Math.PI/180;return[cx+rx*Math.cos(rad),cy+dy+ry*Math.sin(rad)];};
   const sector=(a0,a1,dy)=>{const L=(a1-a0)>180?1:0;
     const o0=PE(rxO,ryO,a0,dy),o1=PE(rxO,ryO,a1,dy),i1=PE(rxI,ryI,a1,dy),i0=PE(rxI,ryI,a0,dy);
@@ -319,39 +321,57 @@ function donutSVG(items,size){
   const segs=[];let acc=0;
   items.forEach(it=>{const frac=it.v/tot;if(frac<=0)return;const a0=acc*360,a1=(acc+frac)*360;acc+=frac;
     let g0=a0+gap,g1=a1-gap;if(g1-g0<3){g0=a0;g1=a1;}segs.push({it,frac,a0:g0,a1:g1});});
-  let g=`<svg viewBox="0 0 ${size} ${size}" width="100%" height="100%" font-family="ui-monospace,monospace">`;
-  // Paredes (profundidad): de la capa más honda hacia arriba; las de arriba tapan a las de atrás.
-  for(let i=LAYERS;i>=1;i--){const dy=i*step,f=0.40+0.22*(1-i/LAYERS);
+  // Defs: degradado glossy por gajo (brillo arriba → base → sombra abajo) + desenfoque para la sombra.
+  let defs=`<defs><filter id="${uid}bl" x="-40%" y="-40%" width="180%" height="200%"><feGaussianBlur stdDeviation="${(size*0.022).toFixed(1)}"/></filter>`;
+  segs.forEach((s,i)=>{defs+=`<linearGradient id="${uid}g${i}" gradientUnits="userSpaceOnUse" x1="${cx}" y1="${(cy-ryO).toFixed(1)}" x2="${cx}" y2="${(cy+ryO).toFixed(1)}"><stop offset="0" stop-color="${shade(s.it.color,1.36)}"/><stop offset=".52" stop-color="${s.it.color}"/><stop offset="1" stop-color="${shade(s.it.color,0.78)}"/></linearGradient>`;});
+  defs+=`</defs>`;
+  let g=`<svg viewBox="0 0 ${size} ${size}" width="100%" height="100%" font-family="ui-monospace,monospace">`+defs;
+  // Sombra de contacto bajo el anillo.
+  g+=`<ellipse cx="${cx}" cy="${(cy+depth+ryO*0.5).toFixed(1)}" rx="${(rxO*0.95).toFixed(1)}" ry="${(ryO*0.46).toFixed(1)}" fill="#02060f" opacity=".5" filter="url(#${uid}bl)"/>`;
+  // Pared extruida: de la capa más honda hacia la superficie; las de arriba tapan a las de atrás.
+  for(let i=LAYERS;i>=1;i--){const dy=i*step,f=0.40+0.28*(1-i/LAYERS);
     segs.forEach(s=>{g+=`<path d="${sector(s.a0,s.a1,dy)}" fill="${shade(s.it.color,f)}"/>`;});}
-  // Cara superior (exacta en ángulo) con tooltip.
-  segs.forEach(s=>{g+=`<path d="${sector(s.a0,s.a1,0)}" fill="${s.it.color}" stroke="rgba(255,255,255,.16)" stroke-width="1"><title>${esc(s.it.label)}: ${fmt(s.it.v)} (${Math.round(s.frac*100)}%)</title></path>`;});
+  // Cara superior glossy con degradado + brillo de borde y tooltip.
+  segs.forEach((s,i)=>{g+=`<path d="${sector(s.a0,s.a1,0)}" fill="url(#${uid}g${i})" stroke="${shade(s.it.color,1.45)}" stroke-width="1.1" stroke-opacity=".6"><title>${esc(s.it.label)}: ${fmt(s.it.v)} (${Math.round(s.frac*100)}%)</title></path>`;});
   // Íconos + porcentajes por gajo.
   const rMx=(rxO+rxI)/2,rMy=(ryO+ryI)/2;
-  segs.forEach(s=>{const mid=(s.a0+s.a1)/2,p=PE(rMx,rMy,mid,0),hasIcon=s.it.icon&&s.frac>=0.07;
-    if(hasIcon)g+=`<text x="${p[0].toFixed(1)}" y="${(p[1]-size*0.028).toFixed(1)}" font-size="${(size*0.09).toFixed(0)}" text-anchor="middle" dominant-baseline="central">${s.it.icon}</text>`;
-    if(s.frac>=0.05)g+=`<text x="${p[0].toFixed(1)}" y="${(p[1]+(hasIcon?size*0.052:0)).toFixed(1)}" fill="${textOn(s.it.color)}" font-size="${(size*0.05).toFixed(0)}" font-weight="700" text-anchor="middle" dominant-baseline="central">${Math.round(s.frac*100)}%</text>`;});
+  segs.forEach(s=>{const mid=(s.a0+s.a1)/2,p=PE(rMx,rMy,mid,0),hasIcon=s.it.icon&&s.frac>=0.06;
+    if(hasIcon)g+=`<text x="${p[0].toFixed(1)}" y="${(p[1]-size*0.03).toFixed(1)}" font-size="${(size*0.092).toFixed(0)}" text-anchor="middle" dominant-baseline="central">${s.it.icon}</text>`;
+    if(s.frac>=0.045)g+=`<text x="${p[0].toFixed(1)}" y="${(p[1]+(hasIcon?size*0.055:0)).toFixed(1)}" fill="${textOn(s.it.color)}" font-size="${(size*0.05).toFixed(0)}" font-weight="800" text-anchor="middle" dominant-baseline="central" style="paint-order:stroke;stroke:rgba(3,10,20,.35);stroke-width:${(size*0.006).toFixed(1)}px">${Math.round(s.frac*100)}%</text>`;});
   // Total en el centro.
-  g+=`<text x="${cx}" y="${(cy-size*0.015).toFixed(1)}" fill="#eaf6ff" font-size="${(size*0.072).toFixed(0)}" font-weight="800" text-anchor="middle" dominant-baseline="central">${fmtK(realTot)}</text>`;
-  g+=`<text x="${cx}" y="${(cy+size*0.052).toFixed(1)}" fill="#6f89b3" font-size="${(size*0.036).toFixed(0)}" letter-spacing="1.5" text-anchor="middle" dominant-baseline="central">TOTAL</text>`;
+  g+=`<text x="${cx}" y="${(cy-size*0.012).toFixed(1)}" fill="#eaf6ff" font-size="${(size*0.075).toFixed(0)}" font-weight="800" text-anchor="middle" dominant-baseline="central">${fmtK(realTot)}</text>`;
+  g+=`<text x="${cx}" y="${(cy+size*0.055).toFixed(1)}" fill="#7f9bc4" font-size="${(size*0.036).toFixed(0)}" letter-spacing="1.6" text-anchor="middle" dominant-baseline="central">TOTAL</text>`;
   g+=`</svg>`;return g;}
-// Radar estilo infografía: anillos circulares, radios con etiqueta afuera, rellenos con glow.
-function radarSVG(labels,series,size){const c=size/2,R=size*0.30,N=labels.length,RINGS=6;
+// Radar infografía: bandas concéntricas con glow (alfa acumulada), anillos, radios con nodos y etiquetas numeradas.
+function radarSVG(labels,series,size){
+  const uid='rd'+(++__gid),c=size/2,R=size*0.285,N=labels.length,RINGS=7;
   const max=Math.max(1,...series.flatMap(s=>s.data));
-  let g=`<svg viewBox="0 0 ${size} ${size}" width="100%" height="100%" font-family="ui-monospace,monospace">`;
-  g+=`<defs><filter id="radarGlow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`+
-     `<radialGradient id="radarBg" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(176,38,180,.16)"/><stop offset="72%" stop-color="rgba(176,38,180,0)"/></radialGradient></defs>`;
-  g+=`<circle cx="${c}" cy="${c}" r="${R.toFixed(1)}" fill="url(#radarBg)"/>`;
-  for(let ring=1;ring<=RINGS;ring++){const rr=R*ring/RINGS;
-    g+=`<circle cx="${c}" cy="${c}" r="${rr.toFixed(1)}" fill="none" stroke="rgba(130,160,220,${ring===RINGS?.3:.12})" stroke-width="1"/>`;}
-  for(let i=0;i<N;i++){const ang=i/N*360,[x,y]=P(c,c,R,ang);
-    g+=`<line x1="${c}" y1="${c}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="rgba(130,160,220,.16)" stroke-width="1"/>`;
-    const[tx,ty]=P(c,c,R+5,ang);g+=`<circle cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="1.5" fill="rgba(160,190,245,.7)"/>`;
-    const cs=Math.cos((ang-90)*Math.PI/180),anchor=Math.abs(cs)<.34?'middle':(cs>0?'start':'end'),[lx,ly]=P(c,c,R+13,ang);
-    g+=`<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" fill="#a9c4ea" font-size="7.5" font-weight="700" text-anchor="${anchor}" dominant-baseline="middle">${esc(labels[i])}</text>`;}
   const ordered=series.map(s=>({s,area:s.data.reduce((a,b)=>a+Math.max(0,b),0)})).sort((a,b)=>b.area-a.area).map(o=>o.s);
-  ordered.forEach(s=>{let pts='';const V=[];for(let i=0;i<N;i++){const v=Math.max(0,s.data[i])/max,[x,y]=P(c,c,R*v,i/N*360);pts+=`${x.toFixed(1)},${y.toFixed(1)} `;V.push([x,y]);}
-    g+=`<polygon points="${pts}" fill="${s.color}55" stroke="${s.color}" stroke-width="2.4" stroke-linejoin="round" filter="url(#radarGlow)"/>`;
-    V.forEach(p=>g+=`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.6" fill="${s.color}" stroke="#0a1220" stroke-width="1"/>`);});
+  const glow=(ordered[0]&&ordered[0].color)||'#ff2e63';
+  let g=`<svg viewBox="0 0 ${size} ${size}" width="100%" height="100%" font-family="ui-monospace,monospace">`;
+  g+=`<defs><filter id="${uid}gl" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`+
+     `<radialGradient id="${uid}bg" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="${glow}" stop-opacity=".24"/><stop offset="55%" stop-color="${glow}" stop-opacity=".05"/><stop offset="100%" stop-color="${glow}" stop-opacity="0"/></radialGradient></defs>`;
+  // Halo de fondo teñido por la serie dominante.
+  g+=`<circle cx="${c}" cy="${c}" r="${(R*1.3).toFixed(1)}" fill="url(#${uid}bg)"/>`;
+  // Anillos concéntricos (el exterior más marcado).
+  for(let ring=1;ring<=RINGS;ring++){const rr=R*ring/RINGS,out=ring===RINGS;
+    g+=`<circle cx="${c}" cy="${c}" r="${rr.toFixed(1)}" fill="none" stroke="rgba(150,175,225,${out?.34:.11})" stroke-width="${out?1.2:1}"/>`;}
+  // Radios + nodos + etiquetas numeradas afuera.
+  for(let i=0;i<N;i++){const ang=i/N*360,[x,y]=P(c,c,R,ang);
+    g+=`<line x1="${c}" y1="${c}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="rgba(150,175,225,.15)" stroke-width="1"/>`;
+    g+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2" fill="${glow}" stroke="#0a1220" stroke-width="1"/>`;
+    const cs=Math.cos((ang-90)*Math.PI/180),anchor=Math.abs(cs)<.30?'middle':(cs>0?'start':'end'),[lx,ly]=P(c,c,R+11,ang);
+    const raw=String(labels[i]),m=raw.match(/^(\d+)\s*[·.\-]\s*(.*)$/);
+    if(m)g+=`<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" dominant-baseline="middle"><tspan fill="${glow}" font-size="8.5" font-weight="800">${esc(m[1])}</tspan><tspan fill="#a9c4ea" font-size="7" font-weight="600" dx="2.5">${esc(m[2])}</tspan></text>`;
+    else g+=`<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" fill="#a9c4ea" font-size="7.5" font-weight="700" text-anchor="${anchor}" dominant-baseline="middle">${esc(raw)}</text>`;}
+  // Series (de mayor a menor área): bandas concéntricas que acumulan alfa + contorno con glow + nodos.
+  const BANDS=8;
+  ordered.forEach(s=>{const V=[];for(let i=0;i<N;i++){const v=Math.max(0,s.data[i])/max,[x,y]=P(c,c,R*v,i/N*360);V.push([x,y]);}
+    for(let b=BANDS;b>=1;b--){const k=b/BANDS,pts=V.map(([x,y])=>`${(c+(x-c)*k).toFixed(1)},${(c+(y-c)*k).toFixed(1)}`).join(' ');
+      g+=`<polygon points="${pts}" fill="${s.color}" fill-opacity=".1" stroke="${s.color}" stroke-opacity=".16" stroke-width=".8" stroke-linejoin="round"/>`;}
+    const outer=V.map(([x,y])=>`${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+    g+=`<polygon points="${outer}" fill="none" stroke="${s.color}" stroke-width="2.2" stroke-linejoin="round" filter="url(#${uid}gl)"/>`;
+    V.forEach(p=>g+=`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.6" fill="${shade(s.color,1.3)}" stroke="#0a1220" stroke-width="1"/>`);});
   g+=`</svg>`;return g;}
 function vbarsSVG(vals,labels,w,h){const n=vals.length,pad=22,bw=(w-8)/n*0.62,gap=(w-8)/n;
   const mx=Math.max(1,...vals.map(Math.abs));const zero=h-pad-(h-pad*2)*0.5;const scale=(h-pad*2)/2/mx;
