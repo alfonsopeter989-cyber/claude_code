@@ -109,6 +109,20 @@ select.pill{appearance:none;padding-right:32px;color:var(--ink);
 .metarow .top{display:flex;justify-content:space-between;font-size:13.5px;font-weight:600;margin-bottom:5px;letter-spacing:.02em}
 .metarow .amt{font-family:'Orbitron';font-size:12px}
 .empty{text-align:center;padding:34px;color:var(--muted);font-size:13px;letter-spacing:.04em}
+/* Radar interactivo: chips de meses y series */
+.radar-chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+.radar-mchip,.radar-all{font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:10.5px;font-weight:700;letter-spacing:.04em;padding:5px 9px;border-radius:3px;cursor:pointer;text-transform:uppercase;background:rgba(9,20,42,.55);border:1px solid var(--line);color:var(--muted);transition:.12s}
+.radar-mchip:hover,.radar-all:hover{border-color:var(--cyan);color:var(--ink)}
+.radar-mchip.on{background:rgba(45,225,252,.14);border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 8px rgba(45,225,252,.15)}
+.radar-mchip.lock{cursor:not-allowed;opacity:.9}
+.radar-all{color:var(--ink);border-style:dashed}
+.radar-legend{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px}
+.radar-schip{display:inline-flex;align-items:center;gap:6px;font-family:inherit;font-size:11px;font-weight:600;padding:4px 10px;border-radius:3px;cursor:pointer;background:transparent;border:1px solid var(--line);color:var(--muted);transition:.12s}
+.radar-schip span{width:9px;height:9px;border-radius:50%;display:inline-block;opacity:.3;transition:.12s}
+.radar-schip.on{color:var(--ink)}
+.radar-schip.on span{opacity:1}
+.radar-schip:not(.on){text-decoration:line-through;opacity:.7}
+.radar-schip:hover{border-color:var(--cyan)}
 .footer{text-align:center;font-size:11px;color:var(--muted);margin-top:28px;line-height:1.8;
   letter-spacing:.1em;text-transform:uppercase}
 #drop.drag .panel{border-color:var(--cyan)}
@@ -412,9 +426,10 @@ function render(){
     </div></div>
   <div class="grid">
     <div class="panel span7"><div class="eyebrow">Radar anual</div><h3>Ingreso · Presupuesto · Gasto real</h3>
-      <div class="hint">Cada eje es un mes, cada polígono una serie</div>
-      <div style="height:320px">${radarSVG(DATA.labels.map(l=>l.toUpperCase()),[{color:'#2de1fc',data:DATA.neto},{color:'#f5c518',data:A.bud12},{color:'#ff477e',data:A.real12}],320)}</div>
-      ${legendHTML([{label:'Ingreso',color:'#2de1fc'},{label:'Presupuesto',color:'#f5c518'},{label:'Gasto real',color:'#ff477e'}])}</div>
+      <div class="hint">Tocá los meses para incluirlos o sacarlos · la leyenda prende/apaga series · mínimo 3 meses</div>
+      <div id="radarMonths" class="radar-chips"></div>
+      <div id="radarPlot" style="height:320px"></div>
+      <div id="radarSeries" class="radar-legend"></div></div>
     <div class="panel span5"><div class="eyebrow">Distribución</div><h3>¿En qué se va la plata?</h3>
       <div class="hint">Gasto real por categoría · ${selLabel}</div>
       <div style="height:250px">${cats.length?donutSVG(cats,250):'<div class=empty>Sin gastos</div>'}</div>
@@ -481,9 +496,43 @@ function render(){
         <div class="bar-mini" style="height:11px"><i style="width:${Math.min(100,p*100)}%;background:${col};box-shadow:0 0 12px ${col}"></i></div>
         <div class="mt" style="font-size:11px;color:var(--muted);margin-top:4px">Falta ${fmt(falta)}${meses?` · ~${meses} meses al ritmo de ${fmt(m.ap)}/mes`:''}</div></div>`;}).join(''):'<div class=empty>Aún no has definido metas</div>'}</div>
   </div>`;
+  RADAR_DATA={labels:DATA.labels,series:{neto:DATA.neto,bud:A.bud12,real:A.real12}};
+  if(!RADAR_M)RADAR_M=new Set(DATA.labels.map((_,i)=>i));
+  renderRadar();
 }
 
 document.getElementById('monthSel').addEventListener('change',e=>{SEL=e.target.value;render();});
+
+// ============ RADAR INTERACTIVO (meses + series · independiente del selector de arriba) ============
+const RSERIES=[{k:'neto',label:'Ingreso',color:'#2de1fc'},{k:'bud',label:'Presupuesto',color:'#f5c518'},{k:'real',label:'Gasto real',color:'#ff477e'}];
+let RADAR_DATA=null,RADAR_M=null,RADAR_S=new Set(['neto','bud','real']);
+function radarIdx(){return RADAR_M?[...RADAR_M].filter(i=>i>=0&&RADAR_DATA&&i<RADAR_DATA.labels.length).sort((a,b)=>a-b):[];}
+function loadRadarPrefs(){try{
+  const m=JSON.parse(localStorage.getItem('radarMonths')||'null');
+  if(Array.isArray(m)){const s=new Set(m.filter(i=>Number.isInteger(i)&&i>=0&&i<60));if(s.size>=3)RADAR_M=s;}
+  const sv=JSON.parse(localStorage.getItem('radarSeries')||'null');
+  if(Array.isArray(sv)){const set=new Set(sv.filter(k=>RSERIES.some(r=>r.k===k)));if(set.size>=1)RADAR_S=set;}
+}catch(e){}}
+function saveRadarPrefs(){try{localStorage.setItem('radarMonths',JSON.stringify(RADAR_M?[...RADAR_M]:[]));localStorage.setItem('radarSeries',JSON.stringify([...RADAR_S]));}catch(e){}}
+function renderRadar(){
+  if(!RADAR_DATA)return;
+  const mc=document.getElementById('radarMonths'),el=document.getElementById('radarPlot'),sc=document.getElementById('radarSeries');
+  if(!mc||!el||!sc)return;
+  const idx=radarIdx(),atMin=idx.length<=3;
+  mc.innerHTML='<button class="radar-all" data-radaract="all">Todos</button><button class="radar-all" data-radaract="none">Ninguno</button>'+
+    RADAR_DATA.labels.map((l,i)=>{const on=RADAR_M?RADAR_M.has(i):false,lock=on&&atMin;return `<button class="radar-mchip${on?' on':''}${lock?' lock':''}" data-radarm="${i}"${lock?' title="Mínimo 3 meses"':''}>${esc(String(l).toUpperCase())}</button>`;}).join('');
+  sc.innerHTML=RSERIES.map(s=>`<button class="radar-schip${RADAR_S.has(s.k)?' on':''}" data-radars="${s.k}"><span style="background:${s.color}"></span>${s.label}</button>`).join('');
+  if(idx.length<3){el.innerHTML='<div class="empty">Seleccioná al menos 3 meses</div>';return;}
+  const series=RSERIES.filter(s=>RADAR_S.has(s.k)).map(s=>({color:s.color,data:idx.map(i=>RADAR_DATA.series[s.k][i])}));
+  if(!series.length){el.innerHTML='<div class="empty">Seleccioná al menos una serie</div>';return;}
+  el.innerHTML=radarSVG(idx.map(i=>String(RADAR_DATA.labels[i]).toUpperCase()),series,320);
+}
+document.getElementById('app').addEventListener('click',e=>{
+  const m=e.target.closest('[data-radarm]'),s=e.target.closest('[data-radars]'),a=e.target.closest('[data-radaract]');
+  if(m){if(!RADAR_M)RADAR_M=new Set(RADAR_DATA.labels.map((_,j)=>j));const i=+m.dataset.radarm;if(RADAR_M.has(i)){if(radarIdx().length<=3)return;RADAR_M.delete(i);}else RADAR_M.add(i);saveRadarPrefs();renderRadar();}
+  else if(s){const k=s.dataset.radars;if(RADAR_S.has(k)){if(RADAR_S.size<=1)return;RADAR_S.delete(k);}else RADAR_S.add(k);saveRadarPrefs();renderRadar();}
+  else if(a){if(a.dataset.radaract==='all')RADAR_M=new Set(RADAR_DATA.labels.map((_,i)=>i));else RADAR_M=new Set();saveRadarPrefs();renderRadar();}
+});
 
 // ============ PERSISTENCIA LOCAL (IndexedDB · solo en este dispositivo) ============
 // Guarda los bytes crudos del último .xlsx cargado en el navegador de ESTE dispositivo.
@@ -533,6 +582,7 @@ drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('drag'
 
 // Arranque: dibuja la demo al instante y luego restaura tus datos guardados si existen.
 async function boot(){
+  loadRadarPrefs();
   try{buildMonthSel();render();}
   catch(e){document.getElementById('app').innerHTML='<div class="panel span12" style="text-align:center;padding:30px"><h3>Ups, algo falló al dibujar</h3><div class="hint">'+esc(e.message)+'</div></div>';return;}
   try{
