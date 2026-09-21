@@ -215,6 +215,14 @@ async function readXlsx(buf){const zip=await unzip(buf);const shared=parseShared
 const CATS=['Vivienda','Alimentación','Transporte','Salud','Educación','Suscripciones','Seguros','Créditos y deudas','Personal y hogar','Ocio y viajes','Ahorro e inversión','Otros'];
 const CC=['#2de1fc','#f5c518','#ff8a3d','#ff477e','#3ce6c4','#8b5cff','#5bd1ff','#ffd23f','#ff5ca8','#a6f24d','#4d8bff','#8aa0c0'];
 const catColor=c=>CC[Math.max(0,CATS.indexOf(c))%CC.length];
+// Íconos por segmento (anillos 3D) + utilidades de color
+const CAT_ICON={'Vivienda':'🏠','Alimentación':'🍽️','Transporte':'🚗','Salud':'🩺','Educación':'🎓','Suscripciones':'📺','Seguros':'🛡️','Créditos y deudas':'💳','Personal y hogar':'🧴','Ocio y viajes':'✈️','Ahorro e inversión':'💰','Otros':'📦'};
+const catIcon=c=>CAT_ICON[c]||'📦';
+function payIcon(n){n=(n||'').toLowerCase();if(/efectivo/.test(n))return'💵';if(/nequi|daviplata/.test(n))return'📱';if(/transferencia|pse|banc|d[eé]bito/.test(n))return'🏦';return'💳';}
+function subIcon(s){s=(s||'').toLowerCase();if(/streaming|entreten/.test(s))return'📺';if(/\bia\b|inteligencia/.test(s))return'🤖';if(/prensa|noticias/.test(s))return'📰';if(/software|almacen/.test(s))return'💾';return'🔁';}
+function deudaIcon(t){t=(t||'').toLowerCase();if(/veh[ií]culo|carro|auto/.test(t))return'🚗';if(/hipotec|vivienda/.test(t))return'🏠';if(/tarjeta/.test(t))return'💳';if(/educ/.test(t))return'🎓';if(/libre/.test(t))return'💵';return'🏦';}
+function textOn(hex){hex=hex.replace('#','');const r=parseInt(hex.slice(0,2),16),g=parseInt(hex.slice(2,4),16),b=parseInt(hex.slice(4,6),16);return (0.299*r+0.587*g+0.114*b)>150?'#08131f':'#eef6ff';}
+function shade(hex,f){hex=hex.replace('#','');const r=parseInt(hex.slice(0,2),16),g=parseInt(hex.slice(2,4),16),b=parseInt(hex.slice(4,6),16);const m=x=>Math.max(0,Math.min(255,Math.round(x*f)));return`rgb(${m(r)},${m(g)},${m(b)})`;}
 const fmt=n=>{n=Math.round(n||0);const s=n<0?'-':'';n=Math.abs(n);return s+'$'+n.toLocaleString('es-CO');};
 const fmtK=n=>{n=Math.round(n||0);const s=n<0?'-':'';n=Math.abs(n);if(n>=1e6)return s+'$'+(n/1e6).toFixed(1)+'M';if(n>=1e3)return s+'$'+Math.round(n/1e3)+'k';return s+'$'+n;};
 const pct=n=>(n*100).toFixed(n>=1||n<=-1?0:1)+'%';
@@ -285,16 +293,33 @@ function gaugeSVG(p,col){p=Math.max(0,Math.min(1,p));const s=118,c=s/2,r=48,w=11
   g+=svgArc(c,c,r,135,405,w,'rgba(45,225,252,.12)');
   if(p>0)g+=svgArc(c,c,r,135,135+270*p,w,col);
   g+=`<circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="rgba(45,225,252,.05)" stroke-width="1"/></svg>`;return g;}
-function donutSVG(items,size){const tot=items.reduce((a,b)=>a+b.v,0)||1;const c=size/2,r=size*0.38,w=size*0.20;
-  let g=`<svg viewBox="0 0 ${size} ${size}" width="100%" height="100%" font-family="ui-monospace,monospace">`,acc=0,labs='';
-  g+=`<circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="rgba(45,225,252,.07)" stroke-width="${w}"/>`;
-  items.forEach(it=>{const frac=it.v/tot;if(frac<=0)return;const a0=acc*360,a1=(acc+frac)*360;
-    const seg=a1-a0>=359.9?svgArc(c,c,r,0,359.9,w,it.color,'butt'):svgArc(c,c,r,a0,a1,w,it.color,'butt');
-    g+=seg.replace('/>',`><title>${esc(it.label)}: ${fmt(it.v)} (${Math.round(frac*100)}%)</title></path>`);
-    if(frac>=0.045){const mid=(a0+a1)/2;const[lx,ly]=P(c,c,r,mid);
-      labs+=`<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" fill="#08131f" font-size="${(size*0.058).toFixed(0)}" font-weight="700" text-anchor="middle" dominant-baseline="central">${Math.round(frac*100)}%</text>`;}
-    acc+=frac;});
-  g+=labs+`</svg>`;return g;}
+// Anillo 3D isométrico: extrusión por capas apiladas (tilt vertical) + íconos y % por gajo.
+function donutSVG(items,size){
+  const realTot=items.reduce((a,b)=>a+b.v,0),tot=realTot||1;
+  const cx=size/2,cy=size*0.44,rxO=size*0.40,rxI=size*0.225,tilt=0.56,ryO=rxO*tilt,ryI=rxI*tilt;
+  const depth=size*0.12,LAYERS=14,step=depth/LAYERS,gap=1.4;
+  const PE=(rx,ry,a,dy)=>{const rad=(a-90)*Math.PI/180;return[cx+rx*Math.cos(rad),cy+dy+ry*Math.sin(rad)];};
+  const sector=(a0,a1,dy)=>{const L=(a1-a0)>180?1:0;
+    const o0=PE(rxO,ryO,a0,dy),o1=PE(rxO,ryO,a1,dy),i1=PE(rxI,ryI,a1,dy),i0=PE(rxI,ryI,a0,dy);
+    return `M${o0[0].toFixed(2)} ${o0[1].toFixed(2)} A${rxO.toFixed(2)} ${ryO.toFixed(2)} 0 ${L} 1 ${o1[0].toFixed(2)} ${o1[1].toFixed(2)} L${i1[0].toFixed(2)} ${i1[1].toFixed(2)} A${rxI.toFixed(2)} ${ryI.toFixed(2)} 0 ${L} 0 ${i0[0].toFixed(2)} ${i0[1].toFixed(2)} Z`;};
+  const segs=[];let acc=0;
+  items.forEach(it=>{const frac=it.v/tot;if(frac<=0)return;const a0=acc*360,a1=(acc+frac)*360;acc+=frac;
+    let g0=a0+gap,g1=a1-gap;if(g1-g0<3){g0=a0;g1=a1;}segs.push({it,frac,a0:g0,a1:g1});});
+  let g=`<svg viewBox="0 0 ${size} ${size}" width="100%" height="100%" font-family="ui-monospace,monospace">`;
+  // Paredes (profundidad): de la capa más honda hacia arriba; las de arriba tapan a las de atrás.
+  for(let i=LAYERS;i>=1;i--){const dy=i*step,f=0.40+0.22*(1-i/LAYERS);
+    segs.forEach(s=>{g+=`<path d="${sector(s.a0,s.a1,dy)}" fill="${shade(s.it.color,f)}"/>`;});}
+  // Cara superior (exacta en ángulo) con tooltip.
+  segs.forEach(s=>{g+=`<path d="${sector(s.a0,s.a1,0)}" fill="${s.it.color}" stroke="rgba(255,255,255,.16)" stroke-width="1"><title>${esc(s.it.label)}: ${fmt(s.it.v)} (${Math.round(s.frac*100)}%)</title></path>`;});
+  // Íconos + porcentajes por gajo.
+  const rMx=(rxO+rxI)/2,rMy=(ryO+ryI)/2;
+  segs.forEach(s=>{const mid=(s.a0+s.a1)/2,p=PE(rMx,rMy,mid,0),hasIcon=s.it.icon&&s.frac>=0.07;
+    if(hasIcon)g+=`<text x="${p[0].toFixed(1)}" y="${(p[1]-size*0.028).toFixed(1)}" font-size="${(size*0.09).toFixed(0)}" text-anchor="middle" dominant-baseline="central">${s.it.icon}</text>`;
+    if(s.frac>=0.05)g+=`<text x="${p[0].toFixed(1)}" y="${(p[1]+(hasIcon?size*0.052:0)).toFixed(1)}" fill="${textOn(s.it.color)}" font-size="${(size*0.05).toFixed(0)}" font-weight="700" text-anchor="middle" dominant-baseline="central">${Math.round(s.frac*100)}%</text>`;});
+  // Total en el centro.
+  g+=`<text x="${cx}" y="${(cy-size*0.015).toFixed(1)}" fill="#eaf6ff" font-size="${(size*0.072).toFixed(0)}" font-weight="800" text-anchor="middle" dominant-baseline="central">${fmtK(realTot)}</text>`;
+  g+=`<text x="${cx}" y="${(cy+size*0.052).toFixed(1)}" fill="#6f89b3" font-size="${(size*0.036).toFixed(0)}" letter-spacing="1.5" text-anchor="middle" dominant-baseline="central">TOTAL</text>`;
+  g+=`</svg>`;return g;}
 function radarSVG(labels,series,size){const c=size/2,R=size*0.36,N=labels.length;
   const max=Math.max(1,...series.flatMap(s=>s.data));let g=`<svg viewBox="0 0 ${size} ${size}" width="100%" height="100%" font-family="ui-monospace,monospace">`;
   for(let ring=1;ring<=4;ring++){const rr=R*ring/4;let pts='';for(let i=0;i<N;i++){const[x,y]=P(c,c,rr,i/N*360);pts+=`${x.toFixed(1)},${y.toFixed(1)} `;}
@@ -358,9 +383,9 @@ function render(){
     ['IA / suscrip.','del gasto digital',A.iaShare,'#f5c518',pct(A.iaShare)],
     ['Metas','ahorrado',A.metaShare,'#8b5cff',pct(A.metaShare)]];
 
-  const cats=CATS.filter(c=>A.byCat[c]>0).map(c=>({label:c,v:A.byCat[c],color:catColor(c)}));
-  const meds=Object.entries(A.byMed).sort((a,b)=>b[1]-a[1]).map((m,i)=>({label:m[0].replace(/\*/g,'·'),v:m[1],color:CC[i%CC.length]}));
-  const su=[...DATA.subs].sort((a,b)=>b.mes-a.mes).map((s,i)=>({label:s.s,v:s.mes,color:CC[i%CC.length]}));
+  const cats=CATS.filter(c=>A.byCat[c]>0).map(c=>({label:c,v:A.byCat[c],color:catColor(c),icon:catIcon(c)}));
+  const meds=Object.entries(A.byMed).sort((a,b)=>b[1]-a[1]).map((m,i)=>({label:m[0].replace(/\*/g,'·'),v:m[1],color:CC[i%CC.length],icon:payIcon(m[0])}));
+  const su=[...DATA.subs].sort((a,b)=>b.mes-a.mes).map((s,i)=>({label:s.s,v:s.mes,color:CC[i%CC.length],icon:subIcon(s.sub)}));
   const rowsB=CATS.map(c=>({c,b:A.budCat[c]||0,r:A.byCat[c]||0})).filter(x=>x.b>0||x.r>0).sort((a,b)=>b.r-a.r);
   const maxB=Math.max(...rowsB.map(x=>Math.max(x.b,x.r)),1);
   const today=new Date();
@@ -370,7 +395,7 @@ function render(){
   const deudaInt=deudas.reduce((a,b)=>a+(b.act*((1+b.tasa)**(1/12)-1)||0),0);
   const netoMesProm=DATA.neto.reduce((a,b)=>a+b,0)/DATA.neto.length;
   const cuotaIng=netoMesProm?deudaCuota/netoMesProm:0;
-  const deudaDonut=deudas.map((d,i)=>({label:d.n,v:d.act,color:CC[i%CC.length]}));
+  const deudaDonut=deudas.map((d,i)=>({label:d.n,v:d.act,color:CC[i%CC.length],icon:deudaIcon(d.tipo)}));
 
   document.getElementById('app').innerHTML=`
   <div class="grid" style="margin-bottom:14px">
