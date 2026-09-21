@@ -441,7 +441,7 @@ function render(){
       <div id="radarSeries" class="radar-legend"></div></div>
     <div class="panel span5"><div class="eyebrow">Distribución</div><h3>¿En qué se va la plata?</h3>
       <div class="hint">Gasto real por categoría · ${selLabel}</div>
-      <div style="height:250px">${cats.length?donutSVG(cats,250):'<div class=empty>Sin gastos</div>'}</div>
+      <div style="width:100%;max-width:500px;aspect-ratio:1;margin:0 auto">${cats.length?donutSVG(cats,500):'<div class=empty>Sin gastos</div>'}</div>
       ${cats.length?legendHTML(cats.slice(0,8)):''}</div>
 
     <div class="panel span7"><div class="eyebrow">Control</div><h3>Presupuesto vs. real por categoría</h3>
@@ -458,7 +458,7 @@ function render(){
 
     <div class="panel span4"><div class="eyebrow">Canales</div><h3>Medios de pago</h3>
       <div class="hint">Qué tarjeta carga más · ${selLabel}</div>
-      <div style="height:210px">${meds.length?donutSVG(meds,210):'<div class=empty>Sin datos</div>'}</div>
+      <div style="width:100%;max-width:420px;aspect-ratio:1;margin:0 auto">${meds.length?donutSVG(meds,420):'<div class=empty>Sin datos</div>'}</div>
       ${meds.length?legendHTML(meds):''}</div>
     <div class="panel span8"><div class="eyebrow">Ranking</div><h3>Los gastos más grandes</h3>
       <div class="hint">Top 10 movimientos · ${selLabel}</div>
@@ -475,7 +475,7 @@ function render(){
         <div class="days" style="color:${col};background:${bg}">${fecha} · ${dtxt}</div></div>`;}).join(''):'<div class=empty>Sin suscripciones</div>'}</div>
     <div class="panel span5"><div class="eyebrow">Peso</div><h3>Cada suscripción</h3>
       <div class="hint">Equivalente mensual</div>
-      <div style="height:230px">${su.length?donutSVG(su,230):'<div class=empty>—</div>'}</div>${su.length?legendHTML(su):''}</div>
+      <div style="width:100%;max-width:460px;aspect-ratio:1;margin:0 auto">${su.length?donutSVG(su,460):'<div class=empty>—</div>'}</div>${su.length?legendHTML(su):''}</div>
 
     <div class="panel span12"><div class="eyebrow">Deudas</div><h3>Gestión de deudas</h3>
       <div class="hint">Seguimiento de cada crédito · saldo, cuota y avance</div>
@@ -495,7 +495,7 @@ function render(){
             <div class="mt" style="font-size:11px;color:var(--muted);margin-top:4px">${esc(d.tipo||'')}${d.ent?' · '+esc(d.ent):''} · cuota ${fmt(d.cuota)}/mes · ${d.rest>0?d.rest+' cuotas restantes':'al día'} · fin est. ${fin}</div></div>`;}).join('')}
         </div>
         <div class="span5" style="min-width:0"><div class="hint" style="text-align:center;margin-bottom:6px">Peso por saldo</div>
-        <div style="height:230px">${donutSVG(deudaDonut,230)}</div>${legendHTML(deudaDonut)}</div></div>`
+        <div style="width:100%;max-width:460px;aspect-ratio:1;margin:0 auto">${donutSVG(deudaDonut,460)}</div>${legendHTML(deudaDonut)}</div></div>`
       :'<div class=empty>Aún no has registrado deudas en la hoja «Gestión de Deudas»</div>'}</div>
 
     <div class="panel span12"><div class="eyebrow">Objetivos</div><h3>Metas de ahorro</h3>
