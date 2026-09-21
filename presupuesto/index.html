@@ -109,6 +109,20 @@ select.pill{appearance:none;padding-right:32px;color:var(--ink);
 .metarow .top{display:flex;justify-content:space-between;font-size:13.5px;font-weight:600;margin-bottom:5px;letter-spacing:.02em}
 .metarow .amt{font-family:'Orbitron';font-size:12px}
 .empty{text-align:center;padding:34px;color:var(--muted);font-size:13px;letter-spacing:.04em}
+/* Radar interactivo: chips de meses y series */
+.radar-chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+.radar-mchip,.radar-all{font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:10.5px;font-weight:700;letter-spacing:.04em;padding:5px 9px;border-radius:3px;cursor:pointer;text-transform:uppercase;background:rgba(9,20,42,.55);border:1px solid var(--line);color:var(--muted);transition:.12s}
+.radar-mchip:hover,.radar-all:hover{border-color:var(--cyan);color:var(--ink)}
+.radar-mchip.on{background:rgba(45,225,252,.14);border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 8px rgba(45,225,252,.15)}
+.radar-mchip.lock{cursor:not-allowed;opacity:.9}
+.radar-all{color:var(--ink);border-style:dashed}
+.radar-legend{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px}
+.radar-schip{display:inline-flex;align-items:center;gap:6px;font-family:inherit;font-size:11px;font-weight:600;padding:4px 10px;border-radius:3px;cursor:pointer;background:transparent;border:1px solid var(--line);color:var(--muted);transition:.12s}
+.radar-schip span{width:9px;height:9px;border-radius:50%;display:inline-block;opacity:.3;transition:.12s}
+.radar-schip.on{color:var(--ink)}
+.radar-schip.on span{opacity:1}
+.radar-schip:not(.on){text-decoration:line-through;opacity:.7}
+.radar-schip:hover{border-color:var(--cyan)}
 .footer{text-align:center;font-size:11px;color:var(--muted);margin-top:28px;line-height:1.8;
   letter-spacing:.1em;text-transform:uppercase}
 #drop.drag .panel{border-color:var(--cyan)}
@@ -320,15 +334,24 @@ function donutSVG(items,size){
   g+=`<text x="${cx}" y="${(cy-size*0.015).toFixed(1)}" fill="#eaf6ff" font-size="${(size*0.072).toFixed(0)}" font-weight="800" text-anchor="middle" dominant-baseline="central">${fmtK(realTot)}</text>`;
   g+=`<text x="${cx}" y="${(cy+size*0.052).toFixed(1)}" fill="#6f89b3" font-size="${(size*0.036).toFixed(0)}" letter-spacing="1.5" text-anchor="middle" dominant-baseline="central">TOTAL</text>`;
   g+=`</svg>`;return g;}
-function radarSVG(labels,series,size){const c=size/2,R=size*0.36,N=labels.length;
-  const max=Math.max(1,...series.flatMap(s=>s.data));let g=`<svg viewBox="0 0 ${size} ${size}" width="100%" height="100%" font-family="ui-monospace,monospace">`;
-  for(let ring=1;ring<=4;ring++){const rr=R*ring/4;let pts='';for(let i=0;i<N;i++){const[x,y]=P(c,c,rr,i/N*360);pts+=`${x.toFixed(1)},${y.toFixed(1)} `;}
-    g+=`<polygon points="${pts}" fill="none" stroke="rgba(45,225,252,.10)" stroke-width="1"/>`;}
-  for(let i=0;i<N;i++){const[x,y]=P(c,c,R,i/N*360);g+=`<line x1="${c}" y1="${c}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="rgba(45,225,252,.14)" stroke-width="1"/>`;
-    const[lx,ly]=P(c,c,R+14,i/N*360);g+=`<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" fill="#9fbce8" font-size="8.5" text-anchor="middle" dominant-baseline="middle">${esc(labels[i])}</text>`;}
-  series.forEach(s=>{let pts='';for(let i=0;i<N;i++){const v=Math.max(0,s.data[i])/max;const[x,y]=P(c,c,R*v,i/N*360);pts+=`${x.toFixed(1)},${y.toFixed(1)} `;}
-    g+=`<polygon points="${pts}" fill="${s.color}22" stroke="${s.color}" stroke-width="2"/>`;
-    for(let i=0;i<N;i++){const v=Math.max(0,s.data[i])/max;const[x,y]=P(c,c,R*v,i/N*360);g+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2" fill="${s.color}"/>`;}});
+// Radar estilo infografía: anillos circulares, radios con etiqueta afuera, rellenos con glow.
+function radarSVG(labels,series,size){const c=size/2,R=size*0.30,N=labels.length,RINGS=6;
+  const max=Math.max(1,...series.flatMap(s=>s.data));
+  let g=`<svg viewBox="0 0 ${size} ${size}" width="100%" height="100%" font-family="ui-monospace,monospace">`;
+  g+=`<defs><filter id="radarGlow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`+
+     `<radialGradient id="radarBg" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(176,38,180,.16)"/><stop offset="72%" stop-color="rgba(176,38,180,0)"/></radialGradient></defs>`;
+  g+=`<circle cx="${c}" cy="${c}" r="${R.toFixed(1)}" fill="url(#radarBg)"/>`;
+  for(let ring=1;ring<=RINGS;ring++){const rr=R*ring/RINGS;
+    g+=`<circle cx="${c}" cy="${c}" r="${rr.toFixed(1)}" fill="none" stroke="rgba(130,160,220,${ring===RINGS?.3:.12})" stroke-width="1"/>`;}
+  for(let i=0;i<N;i++){const ang=i/N*360,[x,y]=P(c,c,R,ang);
+    g+=`<line x1="${c}" y1="${c}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="rgba(130,160,220,.16)" stroke-width="1"/>`;
+    const[tx,ty]=P(c,c,R+5,ang);g+=`<circle cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="1.5" fill="rgba(160,190,245,.7)"/>`;
+    const cs=Math.cos((ang-90)*Math.PI/180),anchor=Math.abs(cs)<.34?'middle':(cs>0?'start':'end'),[lx,ly]=P(c,c,R+13,ang);
+    g+=`<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" fill="#a9c4ea" font-size="7.5" font-weight="700" text-anchor="${anchor}" dominant-baseline="middle">${esc(labels[i])}</text>`;}
+  const ordered=series.map(s=>({s,area:s.data.reduce((a,b)=>a+Math.max(0,b),0)})).sort((a,b)=>b.area-a.area).map(o=>o.s);
+  ordered.forEach(s=>{let pts='';const V=[];for(let i=0;i<N;i++){const v=Math.max(0,s.data[i])/max,[x,y]=P(c,c,R*v,i/N*360);pts+=`${x.toFixed(1)},${y.toFixed(1)} `;V.push([x,y]);}
+    g+=`<polygon points="${pts}" fill="${s.color}55" stroke="${s.color}" stroke-width="2.4" stroke-linejoin="round" filter="url(#radarGlow)"/>`;
+    V.forEach(p=>g+=`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.6" fill="${s.color}" stroke="#0a1220" stroke-width="1"/>`);});
   g+=`</svg>`;return g;}
 function vbarsSVG(vals,labels,w,h){const n=vals.length,pad=22,bw=(w-8)/n*0.62,gap=(w-8)/n;
   const mx=Math.max(1,...vals.map(Math.abs));const zero=h-pad-(h-pad*2)*0.5;const scale=(h-pad*2)/2/mx;
@@ -412,12 +435,13 @@ function render(){
     </div></div>
   <div class="grid">
     <div class="panel span7"><div class="eyebrow">Radar anual</div><h3>Ingreso · Presupuesto · Gasto real</h3>
-      <div class="hint">Cada eje es un mes, cada polígono una serie</div>
-      <div style="height:320px">${radarSVG(DATA.labels.map(l=>l.toUpperCase()),[{color:'#2de1fc',data:DATA.neto},{color:'#f5c518',data:A.bud12},{color:'#ff477e',data:A.real12}],320)}</div>
-      ${legendHTML([{label:'Ingreso',color:'#2de1fc'},{label:'Presupuesto',color:'#f5c518'},{label:'Gasto real',color:'#ff477e'}])}</div>
+      <div class="hint">Tocá los meses para incluirlos o sacarlos · la leyenda prende/apaga series · mínimo 3 meses</div>
+      <div id="radarMonths" class="radar-chips"></div>
+      <div id="radarPlot" style="height:320px"></div>
+      <div id="radarSeries" class="radar-legend"></div></div>
     <div class="panel span5"><div class="eyebrow">Distribución</div><h3>¿En qué se va la plata?</h3>
       <div class="hint">Gasto real por categoría · ${selLabel}</div>
-      <div style="height:250px">${cats.length?donutSVG(cats,250):'<div class=empty>Sin gastos</div>'}</div>
+      <div style="width:100%;max-width:500px;aspect-ratio:1;margin:0 auto">${cats.length?donutSVG(cats,500):'<div class=empty>Sin gastos</div>'}</div>
       ${cats.length?legendHTML(cats.slice(0,8)):''}</div>
 
     <div class="panel span7"><div class="eyebrow">Control</div><h3>Presupuesto vs. real por categoría</h3>
@@ -434,7 +458,7 @@ function render(){
 
     <div class="panel span4"><div class="eyebrow">Canales</div><h3>Medios de pago</h3>
       <div class="hint">Qué tarjeta carga más · ${selLabel}</div>
-      <div style="height:210px">${meds.length?donutSVG(meds,210):'<div class=empty>Sin datos</div>'}</div>
+      <div style="width:100%;max-width:420px;aspect-ratio:1;margin:0 auto">${meds.length?donutSVG(meds,420):'<div class=empty>Sin datos</div>'}</div>
       ${meds.length?legendHTML(meds):''}</div>
     <div class="panel span8"><div class="eyebrow">Ranking</div><h3>Los gastos más grandes</h3>
       <div class="hint">Top 10 movimientos · ${selLabel}</div>
@@ -451,7 +475,7 @@ function render(){
         <div class="days" style="color:${col};background:${bg}">${fecha} · ${dtxt}</div></div>`;}).join(''):'<div class=empty>Sin suscripciones</div>'}</div>
     <div class="panel span5"><div class="eyebrow">Peso</div><h3>Cada suscripción</h3>
       <div class="hint">Equivalente mensual</div>
-      <div style="height:230px">${su.length?donutSVG(su,230):'<div class=empty>—</div>'}</div>${su.length?legendHTML(su):''}</div>
+      <div style="width:100%;max-width:460px;aspect-ratio:1;margin:0 auto">${su.length?donutSVG(su,460):'<div class=empty>—</div>'}</div>${su.length?legendHTML(su):''}</div>
 
     <div class="panel span12"><div class="eyebrow">Deudas</div><h3>Gestión de deudas</h3>
       <div class="hint">Seguimiento de cada crédito · saldo, cuota y avance</div>
@@ -471,7 +495,7 @@ function render(){
             <div class="mt" style="font-size:11px;color:var(--muted);margin-top:4px">${esc(d.tipo||'')}${d.ent?' · '+esc(d.ent):''} · cuota ${fmt(d.cuota)}/mes · ${d.rest>0?d.rest+' cuotas restantes':'al día'} · fin est. ${fin}</div></div>`;}).join('')}
         </div>
         <div class="span5" style="min-width:0"><div class="hint" style="text-align:center;margin-bottom:6px">Peso por saldo</div>
-        <div style="height:230px">${donutSVG(deudaDonut,230)}</div>${legendHTML(deudaDonut)}</div></div>`
+        <div style="width:100%;max-width:460px;aspect-ratio:1;margin:0 auto">${donutSVG(deudaDonut,460)}</div>${legendHTML(deudaDonut)}</div></div>`
       :'<div class=empty>Aún no has registrado deudas en la hoja «Gestión de Deudas»</div>'}</div>
 
     <div class="panel span12"><div class="eyebrow">Objetivos</div><h3>Metas de ahorro</h3>
@@ -481,9 +505,43 @@ function render(){
         <div class="bar-mini" style="height:11px"><i style="width:${Math.min(100,p*100)}%;background:${col};box-shadow:0 0 12px ${col}"></i></div>
         <div class="mt" style="font-size:11px;color:var(--muted);margin-top:4px">Falta ${fmt(falta)}${meses?` · ~${meses} meses al ritmo de ${fmt(m.ap)}/mes`:''}</div></div>`;}).join(''):'<div class=empty>Aún no has definido metas</div>'}</div>
   </div>`;
+  RADAR_DATA={labels:DATA.labels,series:{neto:DATA.neto,bud:A.bud12,real:A.real12}};
+  if(!RADAR_M)RADAR_M=new Set(DATA.labels.map((_,i)=>i));
+  renderRadar();
 }
 
 document.getElementById('monthSel').addEventListener('change',e=>{SEL=e.target.value;render();});
+
+// ============ RADAR INTERACTIVO (meses + series · independiente del selector de arriba) ============
+const RSERIES=[{k:'neto',label:'Ingreso',color:'#ff2e63'},{k:'bud',label:'Presupuesto',color:'#c026d3'},{k:'real',label:'Gasto real',color:'#7c5cff'}];
+let RADAR_DATA=null,RADAR_M=null,RADAR_S=new Set(['neto','bud','real']);
+function radarIdx(){return RADAR_M?[...RADAR_M].filter(i=>i>=0&&RADAR_DATA&&i<RADAR_DATA.labels.length).sort((a,b)=>a-b):[];}
+function loadRadarPrefs(){try{
+  const m=JSON.parse(localStorage.getItem('radarMonths')||'null');
+  if(Array.isArray(m)){const s=new Set(m.filter(i=>Number.isInteger(i)&&i>=0&&i<60));if(s.size>=3)RADAR_M=s;}
+  const sv=JSON.parse(localStorage.getItem('radarSeries')||'null');
+  if(Array.isArray(sv)){const set=new Set(sv.filter(k=>RSERIES.some(r=>r.k===k)));if(set.size>=1)RADAR_S=set;}
+}catch(e){}}
+function saveRadarPrefs(){try{localStorage.setItem('radarMonths',JSON.stringify(RADAR_M?[...RADAR_M]:[]));localStorage.setItem('radarSeries',JSON.stringify([...RADAR_S]));}catch(e){}}
+function renderRadar(){
+  if(!RADAR_DATA)return;
+  const mc=document.getElementById('radarMonths'),el=document.getElementById('radarPlot'),sc=document.getElementById('radarSeries');
+  if(!mc||!el||!sc)return;
+  const idx=radarIdx(),atMin=idx.length<=3;
+  mc.innerHTML='<button class="radar-all" data-radaract="all">Todos</button><button class="radar-all" data-radaract="none">Ninguno</button>'+
+    RADAR_DATA.labels.map((l,i)=>{const on=RADAR_M?RADAR_M.has(i):false,lock=on&&atMin;return `<button class="radar-mchip${on?' on':''}${lock?' lock':''}" data-radarm="${i}"${lock?' title="Mínimo 3 meses"':''}>${esc(String(l).toUpperCase())}</button>`;}).join('');
+  sc.innerHTML=RSERIES.map(s=>`<button class="radar-schip${RADAR_S.has(s.k)?' on':''}" data-radars="${s.k}"><span style="background:${s.color}"></span>${s.label}</button>`).join('');
+  if(idx.length<3){el.innerHTML='<div class="empty">Seleccioná al menos 3 meses</div>';return;}
+  const series=RSERIES.filter(s=>RADAR_S.has(s.k)).map(s=>({color:s.color,data:idx.map(i=>RADAR_DATA.series[s.k][i])}));
+  if(!series.length){el.innerHTML='<div class="empty">Seleccioná al menos una serie</div>';return;}
+  el.innerHTML=radarSVG(idx.map((i,pos)=>String(pos+1).padStart(2,'0')+' · '+String(RADAR_DATA.labels[i]).toUpperCase()),series,320);
+}
+document.getElementById('app').addEventListener('click',e=>{
+  const m=e.target.closest('[data-radarm]'),s=e.target.closest('[data-radars]'),a=e.target.closest('[data-radaract]');
+  if(m){if(!RADAR_M)RADAR_M=new Set(RADAR_DATA.labels.map((_,j)=>j));const i=+m.dataset.radarm;if(RADAR_M.has(i)){if(radarIdx().length<=3)return;RADAR_M.delete(i);}else RADAR_M.add(i);saveRadarPrefs();renderRadar();}
+  else if(s){const k=s.dataset.radars;if(RADAR_S.has(k)){if(RADAR_S.size<=1)return;RADAR_S.delete(k);}else RADAR_S.add(k);saveRadarPrefs();renderRadar();}
+  else if(a){if(a.dataset.radaract==='all')RADAR_M=new Set(RADAR_DATA.labels.map((_,i)=>i));else RADAR_M=new Set();saveRadarPrefs();renderRadar();}
+});
 
 // ============ PERSISTENCIA LOCAL (IndexedDB · solo en este dispositivo) ============
 // Guarda los bytes crudos del último .xlsx cargado en el navegador de ESTE dispositivo.
@@ -533,6 +591,7 @@ drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('drag'
 
 // Arranque: dibuja la demo al instante y luego restaura tus datos guardados si existen.
 async function boot(){
+  loadRadarPrefs();
   try{buildMonthSel();render();}
   catch(e){document.getElementById('app').innerHTML='<div class="panel span12" style="text-align:center;padding:30px"><h3>Ups, algo falló al dibujar</h3><div class="hint">'+esc(e.message)+'</div></div>';return;}
   try{
